@@ -1,7 +1,9 @@
  .text ;rn this table is the ENTIRE libary from 379 (minus the last lab idk) but im going to narrow it down
 	.global uart_init
+    .global uart_interrupt_init
 	.global output_string
 	.global output_character
+    .global simple_read_character
 
 
 
@@ -89,7 +91,29 @@ uart_init:
 
 	POP {r4-r12,lr}   ; Restore registers from stack
 	MOV pc, lr
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+uart_interrupt_init:
 
+	MOV r0, #0xC000
+	MOVT r0, #0x4000
+	LDR r1, [r0, #0x038]
+
+	ORR r1,r1, #0x10	;set 5th bit
+
+	STR r1, [r0, #0x038]
+
+
+	;Config Processor to Allow UART Interrupts
+	MOV r0, #0xE000
+	MOVT r0, #0xE000
+	LDR r1, [r0, #0x100]
+
+	ORR r1,r1,#0x20
+
+	STR r1, [r0, #0x100]
+
+
+	MOV pc, lr
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 output_string:
@@ -145,6 +169,19 @@ Polling:
 
 	POP {r4-r12,lr}   ; Restore registers from stack
 	MOV pc, lr
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+simple_read_character:
+	PUSH {r4-r12,lr} ; Spill registers to stack
+
+    MOV r4, #0xC000     ;UART base address
+    MOVT r4, #0x4000
+    LDRB r5, [r4, #0x18] ;Load from memory
+    LDRB r0, [r4]       ;Store in r0
+
+	POP {r4-r12,lr}   ; Restore registers from stack
+
+	MOV pc, lr	; Return
 
 
 .end
