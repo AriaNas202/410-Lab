@@ -1,4 +1,4 @@
- .text ;rn this table is the ENTIRE libary from 379 (minus the last lab idk) but im going to narrow it down
+ .text
 	.global uart_init
     .global uart_interrupt_init
 	.global output_string
@@ -93,6 +93,7 @@ uart_init:
 	MOV pc, lr
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 uart_interrupt_init:
+	PUSH {r4-r12,lr}
 
 	MOV r0, #0xC000
 	MOVT r0, #0x4000
@@ -112,7 +113,7 @@ uart_interrupt_init:
 
 	STR r1, [r0, #0x100]
 
-
+	POP {r4-r12,lr}
 	MOV pc, lr
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
