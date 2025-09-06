@@ -1,7 +1,7 @@
 	.data
 
 prompt_gameStart:        	.string "Would You Like to Test This Function?", 0xA, 0xD
-							.string "Hit Y to test again, Hit any other key to Quit", 0xA, 0xD, 0
+							.string "Hit y to test again, Hit any other key to Quit", 0xA, 0xD, 0
 gameStateFlag:				.word	0x0
 
 
@@ -12,6 +12,7 @@ gameStateFlag:				.word	0x0
 
 	.global keypad_init
 	.global keypad_project
+	.global UART0_Handler
 	.global uart_init ;Library
 	.global uart_interrupt_init ;Library
 	.global output_string ;Library
@@ -28,7 +29,7 @@ ptr_gameStateFlag:		.word gameStateFlag
 keypad_init:
 	PUSH {lr}	; Store register lr on stack
 
-    
+
     BL uart_init ;init the UART to recieve inputs (for the game printing)
 	BL uart_interrupt_init ;init the UART to interrupt (so we can register a "game continue")
 
@@ -43,21 +44,23 @@ keypad_project:
 	PUSH {r4-r5, lr}	; Store register lr on stack
 
 GameInit:
-	;Prints Initial Game Start Screen 
+	;Prints Initial Game Start Screen
 	ldr r0, ptr_prompt_gameStart
 	bl output_string
 	;make gamestate flag 0 (to indicate start of the test)
 	MOV r5, #0
-	STR r5, ptr_gameStateFlag
+	LDR r4, ptr_gameStateFlag ;r4 has address of flag
+	STR r5, [r4] ;stores 0 into address where flag is
 GameContinuePolling:
-	;get game state flag 
-	LDR r4, ptr_gameStateFlag ;using r4 rn JUST BECAUSE its not vulnerable to get overwritten with overides
-	CMP r4, #1 ;if game state flag is 1, then we test the funtion 
+	;get game state flag
+	LDR r4, ptr_gameStateFlag ;r4 has address of flag
+	LDR r4, [r4] ;r4 has content where address is
+	CMP r4, #1 ;if game state flag is 1, then we test the funtion
 	BEQ GameStart
-	CMP r4, #2 ;if game state flag is 2 then we quit 
+	CMP r4, #2 ;if game state flag is 2 then we quit
 	BEQ GameQuit
-	B GameContinuePolling ;else keep polling 
-	
+	B GameContinuePolling ;else keep polling
+
 
 GameStart:
 	;this is where I call the other Function, but not right now (thats a tomorrow deal)
@@ -66,7 +69,7 @@ GameStart:
 
 
 GameQuit:
-	;this is where I will put an ending message 
+	;this is where I will put an ending message
 
 	POP {r4-r5, lr}
 	MOV pc, lr
@@ -88,9 +91,23 @@ UART0_Handler:
 	;read the character
     BL simple_read_character ;character returned in r0
 
-	;CHECK IF ITS Y OR NOT!!! CHANGE FLAG ACCORDINGLY 
+	;CHECK IF ITS Y OR NOT!!! CHANGE FLAG ACCORDINGLY
+	CMP r0, #'y'
+	BEQ SetPlayAgain
+	B DontSetPlayAgain
 
-	
+SetPlayAgain: ;set flag to 1 (GO!)
+	MOV r0, #1
+	LDR r1, ptr_gameStateFlag
+	STR r0, [r1]
+	B EndUartHandler
+
+DontSetPlayAgain: ;set flag to 2 (QUIT!)
+	MOV r0, #2
+	LDR r1, ptr_gameStateFlag
+	STR r0, [r1]
+
+EndUartHandler:
 	POP {r4-r12,lr} ; Spill registers to stack
 	BX lr       	; Return
 
