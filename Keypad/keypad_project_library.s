@@ -1,4 +1,5 @@
  .text
+ 	.global gpio_init
 	.global uart_init
     .global uart_interrupt_init
 	.global output_string
@@ -7,8 +8,55 @@
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+gpio_init:
+	PUSH {r4-r12,lr} ; Spill registers to stack
+
+;INIT for keypad
+
+    ;(1) SETUP Enable Clock (Port A, Pins 5-2) (Port D, Pins 3-0)
+    MOV r1, #0xE608
+    MOVT r1, #0x4000
+    ADD r1, #0xF0000      ;put clock register in r1
+    LDR r2, [r1]        ;loads current clock info into r2
+    ORR r2, r2, #0x1       ;Set 0th bit to 1 (Port A)
+    ORR r2, r2, #0x8       ;Set 3ed bit to 1 (Port D)
+    STR r2, [r1]        ;store new clock with Port A/D enabled
+
+    ;Port A, Pin 5,4,3,2
+    ;Enable Direction for Pins (offset 0x400)
+    MOV r1, #0x4000
+    MOVT r1, #0x4000        ;Move base address for Port A in r1
+    LDR r2, [r1, #0x400]    ;load pin direction register into r2
+    ORR r2, r2, #0x3C      	;sets Pin 2-5 bit to Output (WRITING TO THOSE PINS)
+    STR r2, [r1, #0x400]    ;stores the masked value back in directional register
+
+    ;Set as Digital
+    LDR r2, [r1, #0x51C]    ;Loads Digital Mode Register into r2
+    ORR r2, r2, #0x3C        ;sets Pin 2,3,4,5 Bit with Mask to 1 (Enables Digital Mode)
+    STR r2, [r1, #0x51C]    ;stores masked register back
+
+    ;Port D, Pin 0,1,2,3
+    ;Enable Direction for Pins (offset 0x400)
+    MOV r1, #0x7000
+    MOVT r1, #0x4000        ;Move base address for Port D in r1
+    LDR r2, [r1, #0x400]    ;load pin direction register into r2
+    BIC r2, r2, #0xF        ;sets Pin 0,1,2,3 bit to input (READING THOSE PINS)
+    STR r2, [r1, #0x400]    ;stores the masked value back in directional register
+
+    ;Set as Digital
+    LDR r2, [r1, #0x51C]    ;Loads Digital Mode Register into r2
+    ORR r2, r2, #0xF        ;sets Pin 0,1,2,3 Bit with Mask to 1 (Enables Digital Mode)
+    STR r2, [r1, #0x51C]    ;stores masked register back
 
 
+
+    ;do we need Pull Up Register? I really dont think So (it was for Tiva Buttons, not Alice)
+
+
+	POP {r4-r12,lr}   ; Restore registers from stack
+	MOV pc, lr
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 uart_init:
