@@ -24,6 +24,27 @@ gpio_init:
     ORR r2, r2, #0x8       ;Set 3ed bit to 1 (Port D)
     STR r2, [r1]        ;store new clock with Port A/D enabled
 
+    ;CHECK to see if clock is enabled (PRGPIO)
+    ;Check A Port
+CheckAClock:
+	MOV r0, #0xE000
+	MOVT r0, #0x400F
+	LDR r1, [r0, #0xA08]	;Get PRGPIO Reg data in r1
+	AND r1, r1, #1			;mask 0th bit for Port A
+	CMP r1, #0				;if r1==0, then Port is NOT ready
+	BEQ CheckAClock			;if r1==0, then we keep looping
+
+;Check D Port
+CheckDClock:
+	MOV r0, #0xE000
+	MOVT r0, #0x400F
+	LDR r1, [r0, #0xA08]	;Get PRGPIO Reg data in r1
+	AND r1, r1, #0x8		;mask 3ed bit for Port D
+	CMP r1, #0				;if r1==0, then Port is NOT ready
+	BEQ CheckDClock			;if r1==0, then we keep looping
+
+
+
     ;Port A, Pin 5,4,3,2
     ;Enable Direction for Pins (offset 0x400)
     MOV r1, #0x4000
@@ -52,7 +73,7 @@ gpio_init:
 
 
 
-    ;do we need Pull Up Register? I really dont think So (it was for Tiva Buttons, not Alice)
+    ;do we need Pull Up Register? I really dont think So (it was for Tiva Buttons, not Alice) (Anthony said it doesnt! YAY!)
 
 
 	POP {r4-r12,lr}   ; Restore registers from stack
