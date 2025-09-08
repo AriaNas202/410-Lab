@@ -7,6 +7,10 @@ gameStateFlag:				.word	0x0
 
 prompt_gameEnd:				.string "Quit Test. Thanks for Testing!", 0xA, 0xD, 0
 
+prompt_noButtonPushed:		.string "You did not push a button!", 0xA, 0xD, 0xA, 0xD, 0
+
+prompt_buttonPush:			.string " was the button you pushed!", 0xA, 0xD, 0xA, 0xD, 0
+
 
 
 
@@ -16,6 +20,9 @@ prompt_gameEnd:				.string "Quit Test. Thanks for Testing!", 0xA, 0xD, 0
 	.global keypad_init
 	.global keypad_project
 	.global UART0_Handler
+	.global find_keypad_push
+	.global Timer_Handler
+	.global Switch_Handler
 	.global gpio_init ;Library
 	.global uart_init ;Library
 	.global uart_interrupt_init ;Library
@@ -23,9 +30,11 @@ prompt_gameEnd:				.string "Quit Test. Thanks for Testing!", 0xA, 0xD, 0
 	.global output_character ;Library
 	.global simple_read_character ;Library
 
-ptr_prompt_gameStart:   .word prompt_gameStart
-ptr_gameStateFlag:		.word gameStateFlag
-ptr_prompt_gameEnd:		.word prompt_gameEnd
+ptr_prompt_gameStart:   		.word prompt_gameStart
+ptr_gameStateFlag:				.word gameStateFlag
+ptr_prompt_gameEnd:				.word prompt_gameEnd
+ptr_prompt_noButtonPushed:		.word prompt_noButtonPushed
+ptr_prompt_buttonPush:			.word prompt_buttonPush
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;this is first called by MAIN
@@ -34,8 +43,8 @@ ptr_prompt_gameEnd:		.word prompt_gameEnd
 keypad_init:
 	PUSH {lr}	; Store register lr on stack
 
+	BL uart_init ;init the UART to recieve inputs (for the game printing)
 	BL gpio_init ;init to Read/Write Keypad
-    BL uart_init ;init the UART to recieve inputs (for the game printing)
 	BL uart_interrupt_init ;init the UART to interrupt (so we can register a "game continue")
 
 	POP {lr}
@@ -70,6 +79,11 @@ GameContinuePolling:
 
 
 GameStart:
+	;clear game menu off the screen
+	MOV r0, #0xC
+	BL output_character
+
+
 	BL find_keypad_push ;calls the function to actually do the Button Stuff
 	;ORRR LIKE shit man idk, Should we do this with interrupts. I literally dont even know what Im doing here. Shit
 	;OK so like it SEEMS like he wants a function to see which button is CURRENTLY being held down. Not like "poll until I hit a button and see if its interrupted?
@@ -95,12 +109,13 @@ GameQuit:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 find_keypad_push:
-	PUSH {r4-r8, lr}
+	PUSH {r4-r9, lr}
 	;r4- Acc
 	;r5- Port A
 	;r6- Trash (for Register Info LDR)
 	;r7- Port D
 	;r8- Also Trash (For masking)
+	;r9- Polling Bit
 
 
 	;Init Values
@@ -109,30 +124,64 @@ find_keypad_push:
 	MOVT r5, #0x4000 	;r5 is Port A address
 	MOV r7,#0x7000
 	MOVT r7, #0x4000 	;r7 is Port D address
+	MOV r9, #0
 
-	;Check Column 1 (PA2)
+	;Check Column 0 (PA2)
 
 	;Set Column 0
 	LDR r6, [r5, #0x3FC]	;get Data in Port A
 	ORR r6, #0x4	;Set 2nd bit as 1
 	STR r6, [r5, #0x3FC]	;Set PA2 High
-	NOP
-	NOP
-	NOP
-	NOP
-	NOP				;Wait for D Pins to Catch Up
+;PollingChange1:
+;	ADD r9, r9, #1
+;	CMP r9, #100
+;	BNE PollingChange1
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0		;no ops for pins to catch up
 
 	;Read Rows
-	LDR r6, [r7, #0x3FC]	;r6 is Port D data (IT FAULTS WHEN I GET HERE!!!!)
+	LDRB r6, [r7, #0x3FC]	;r6 is Port D data
+
 	;pin 0
-	AND r8, r6, #1  ;r8 is masked value
-	CMP r8, #0
-	IT NE 			;is r8 == 0? If NO Than Button Pushed!
-	MOVNE r4, #0	;Move Button "0" into r4
+	AND r8, r6, #1  		;r8 is masked value
+	CMP r8, #1
+	ITTT EQ 				;is r8 == 1? If yes then Button Pushed!
+	MOVEQ r4, #0			;Move Button "0" into r4
+	MOVEQ r0, #'1'
+	BLEQ output_character	;Print to screen the button Pushed!
 
 	;pin 1
+	AND r8, r6, #2  		;r8 is masked value
+	CMP r8, #2
+	ITTT EQ 				;If equal then Button Pushed!
+	MOVEQ r4, #4			;Move Button "0" into r4
+	MOVEQ r0, #'4'
+	BLEQ output_character	;Print to screen the button Pushed!
+
 	;pin 2
+	AND r8, r6, #4  		;r8 is masked value
+	CMP r8, #4
+	ITTT EQ 				;If equal then Button Pushed!
+	MOVEQ r4, #8			;Move Button "0" into r4
+	MOVEQ r0, #'7'
+	BLEQ output_character	;Print to screen the button Pushed!
+
 	;pin 3
+	AND r8, r6, #8  		;r8 is masked value
+	CMP r8, #8
+	ITTT EQ 				;If equal then Button Pushed!
+	MOVEQ r4, #12			;Move Button "0" into r4
+	MOVEQ r0, #'*'
+	BLEQ output_character	;Print to screen the button Pushed!
+	;MOVEQ r0, #'*'
+	;BLEQ output_character	;Print to screen the button Pushed!
 
 
 
@@ -140,11 +189,22 @@ find_keypad_push:
 	;Set PA2 High (1)
 
 
+	;Print out Final Message
+	CMP r4, #16	;No button was pushed message
+	ITTEE EQ
+	LDREQ r0, ptr_prompt_noButtonPushed
+	BLEQ output_string
+	LDRNE r0, ptr_prompt_buttonPush
+	BLNE output_string
+
 	;Put Button Pushed in r0 (returned Value)
 	MOV r0, r4
 
 
-	POP {r4-r8, lr}
+
+
+
+	POP {r4-r9, lr}
 	MOV pc, lr
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -182,7 +242,28 @@ EndUartHandler:
 	BX lr       	; Return
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+Timer_Handler:
 
+	; Your code for your Timer handler goes here.  It is not needed for
+	; Lab #5, but will be used in Lab #6.  It is referenced here because
+	; the interrupt enabled startup code has declared Timer_Handler.
+	; This will allow you to not have to redownload startup code for
+	; Lab #6.  Instead, you can use the same startup code as for Lab #5.
+	; Remember to preserver registers r4-r12 by pushing then popping
+	; them to & from the stack at the beginning & end of the handler.
+
+	BX lr       	; Return
+Switch_Handler:
+
+	; Your code for your Timer handler goes here.  It is not needed for
+	; Lab #5, but will be used in Lab #6.  It is referenced here because
+	; the interrupt enabled startup code has declared Timer_Handler.
+	; This will allow you to not have to redownload startup code for
+	; Lab #6.  Instead, you can use the same startup code as for Lab #5.
+	; Remember to preserver registers r4-r12 by pushing then popping
+	; them to & from the stack at the beginning & end of the handler.
+
+	BX lr       	; Return
 
 
 
