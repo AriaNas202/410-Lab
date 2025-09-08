@@ -94,7 +94,7 @@ uart_init:
     MOV r4, #0xE608
     MOVT r4, #0x400F
     MOV r1, #1
-    STR r1, [r4]
+    STR r1, [r4] ;(THIS PART BREAKS THE CODE, HUH? This disables Port D, Omg, I cannot believe I found it, im so tired)
 
     ; Disable UART0 Control
     MOV r4, #0xC030
