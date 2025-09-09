@@ -7,7 +7,7 @@ gameStateFlag:				.word	0x0
 
 prompt_gameEnd:				.string "Quit Test. Thanks for Testing!", 0xA, 0xD, 0
 
-prompt_noButtonPushed:		.string "You did not push a button!", 0xA, 0xD, 0xA, 0xD, 0
+prompt_noButtonPushed:		.string "You did not push a button! (You must push and hold the button before pressing y)", 0xA, 0xD, 0xA, 0xD, 0
 
 prompt_buttonPush:			.string " was the button you pushed!", 0xA, 0xD, 0xA, 0xD, 0
 
@@ -21,8 +21,6 @@ prompt_buttonPush:			.string " was the button you pushed!", 0xA, 0xD, 0xA, 0xD, 
 	.global keypad_project
 	.global UART0_Handler
 	.global find_keypad_push
-	.global Timer_Handler
-	.global Switch_Handler
 	.global gpio_init ;Library
 	.global uart_init ;Library
 	.global uart_interrupt_init ;Library
@@ -85,10 +83,7 @@ GameStart:
 
 
 	BL find_keypad_push ;calls the function to actually do the Button Stuff
-	;ORRR LIKE shit man idk, Should we do this with interrupts. I literally dont even know what Im doing here. Shit
-	;OK so like it SEEMS like he wants a function to see which button is CURRENTLY being held down. Not like "poll until I hit a button and see if its interrupted?
-	;idk itll be simplier to just READ the buttons not interrupt, so ill start with that first and then maybe ask (if time) to see what he wants
-	;What about multiple button pushes? It says "key being pressed" not "keys" but idk, lets get 1 key working FIRST IG
+
 
 
 
@@ -126,16 +121,12 @@ find_keypad_push:
 	MOVT r7, #0x4000 	;r7 is Port D address
 	MOV r9, #0
 
-	;Check Column 0 (PA2)
 
 	;Set Column 0
 	LDR r6, [r5, #0x3FC]	;get Data in Port A
-	ORR r6, #0x4	;Set 2nd bit as 1
+	BIC r6, #0x3C			;set all other columns low
+	ORR r6, #0x4			;Set 2nd bit as 1
 	STR r6, [r5, #0x3FC]	;Set PA2 High
-;PollingChange1:
-;	ADD r9, r9, #1
-;	CMP r9, #100
-;	BNE PollingChange1
 	ADD r0,r0, #0
 	ADD r0,r0, #0
 	ADD r0,r0, #0
@@ -153,15 +144,15 @@ find_keypad_push:
 	AND r8, r6, #1  		;r8 is masked value
 	CMP r8, #1
 	ITTT EQ 				;is r8 == 1? If yes then Button Pushed!
-	MOVEQ r4, #0			;Move Button "0" into r4
-	MOVEQ r0, #'1'
+	MOVEQ r4, #0			;Move Button into r4
+	MOVEQ r0, #'0'
 	BLEQ output_character	;Print to screen the button Pushed!
 
 	;pin 1
 	AND r8, r6, #2  		;r8 is masked value
 	CMP r8, #2
 	ITTT EQ 				;If equal then Button Pushed!
-	MOVEQ r4, #4			;Move Button "0" into r4
+	MOVEQ r4, #4			;Move Button into r4
 	MOVEQ r0, #'4'
 	BLEQ output_character	;Print to screen the button Pushed!
 
@@ -169,31 +160,201 @@ find_keypad_push:
 	AND r8, r6, #4  		;r8 is masked value
 	CMP r8, #4
 	ITTT EQ 				;If equal then Button Pushed!
-	MOVEQ r4, #8			;Move Button "0" into r4
-	MOVEQ r0, #'7'
+	MOVEQ r4, #8			;Move Button into r4
+	MOVEQ r0, #'8'
 	BLEQ output_character	;Print to screen the button Pushed!
 
 	;pin 3
 	AND r8, r6, #8  		;r8 is masked value
 	CMP r8, #8
 	ITTT EQ 				;If equal then Button Pushed!
-	MOVEQ r4, #12			;Move Button "0" into r4
-	MOVEQ r0, #'*'
+	MOVEQ r4, #12			;Move Button into r4
+	MOVEQ r0, #'1'
 	BLEQ output_character	;Print to screen the button Pushed!
-	;MOVEQ r0, #'*'
-	;BLEQ output_character	;Print to screen the button Pushed!
+	CMP r8, #8
+	ITT EQ
+	MOVEQ r0, #'2'
+	BLEQ output_character	;Print to screen the button Pushed!
 
 
+	;Set Column 1
+	LDR r6, [r5, #0x3FC]	;get Data in Port A
+	BIC r6, #0x3C			;set all other columns low
+	ORR r6, #0x8			;Set 3ed bit as 1
+	STR r6, [r5, #0x3FC]	;Set PA3 High
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0		;no ops for pins to catch up
+
+	;Read Rows
+	LDRB r6, [r7, #0x3FC]	;r6 is Port D data
+
+	;pin 0
+	AND r8, r6, #1  		;r8 is masked value
+	CMP r8, #1
+	ITTT EQ 				;is r8 == 1? If yes then Button Pushed!
+	MOVEQ r4, #1			;Move Button into r4
+	MOVEQ r0, #'1'
+	BLEQ output_character	;Print to screen the button Pushed!
+
+	;pin 1
+	AND r8, r6, #2  		;r8 is masked value
+	CMP r8, #2
+	ITTT EQ 				;If equal then Button Pushed!
+	MOVEQ r4, #5			;Move Button into r4
+	MOVEQ r0, #'5'
+	BLEQ output_character	;Print to screen the button Pushed!
+
+	;pin 2
+	AND r8, r6, #4  		;r8 is masked value
+	CMP r8, #4
+	ITTT EQ 				;If equal then Button Pushed!
+	MOVEQ r4, #9			;Move Button into r4
+	MOVEQ r0, #'9'
+	BLEQ output_character	;Print to screen the button Pushed!
+
+	;pin 3
+	AND r8, r6, #8  		;r8 is masked value
+	CMP r8, #8
+	ITTT EQ 				;If equal then Button Pushed!
+	MOVEQ r4, #13			;Move Button into r4
+	MOVEQ r0, #'1'
+	BLEQ output_character	;Print to screen the button Pushed!
+	CMP r8, #8
+	ITT EQ
+	MOVEQ r0, #'3'
+	BLEQ output_character	;Print to screen the button Pushed!
 
 
-	;Set PA2 High (1)
+	;Set Column 2
+	LDR r6, [r5, #0x3FC]	;get Data in Port A
+	BIC r6, #0x3C			;set all other columns low
+	ORR r6, #0x10			;Set 4th bit as 1
+	STR r6, [r5, #0x3FC]	;Set PA4 High
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0		;no ops for pins to catch up
+
+	;Read Rows
+	LDRB r6, [r7, #0x3FC]	;r6 is Port D data
+
+	;pin 0
+	AND r8, r6, #1  		;r8 is masked value
+	CMP r8, #1
+	ITTT EQ 				;is r8 == 1? If yes then Button Pushed!
+	MOVEQ r4, #2			;Move Button into r4
+	MOVEQ r0, #'2'
+	BLEQ output_character	;Print to screen the button Pushed!
+
+	;pin 1
+	AND r8, r6, #2  		;r8 is masked value
+	CMP r8, #2
+	ITTT EQ 				;If equal then Button Pushed!
+	MOVEQ r4, #6			;Move Button into r4
+	MOVEQ r0, #'6'
+	BLEQ output_character	;Print to screen the button Pushed!
+
+	;pin 2
+	AND r8, r6, #4  		;r8 is masked value
+	CMP r8, #4
+	ITTT EQ 				;If equal then Button Pushed!
+	MOVEQ r4, #10			;Move Button into r4
+	MOVEQ r0, #'1'
+	BLEQ output_character	;Print to screen the button Pushed!
+	ITT EQ
+	MOVEQ r0, #'0'
+	BLEQ output_character	;Print to screen the button Pushed!
+
+	;pin 3
+	AND r8, r6, #8  		;r8 is masked value
+	CMP r8, #8
+	ITTT EQ 				;If equal then Button Pushed!
+	MOVEQ r4, #14			;Move Button into r4
+	MOVEQ r0, #'1'
+	BLEQ output_character	;Print to screen the button Pushed!
+	CMP r8, #8
+	ITT EQ
+	MOVEQ r0, #'4'
+	BLEQ output_character	;Print to screen the button Pushed!
+
+
+	;Set Column 3
+	LDR r6, [r5, #0x3FC]	;get Data in Port A
+	BIC r6, #0x3C			;set all other columns low
+	ORR r6, #0x20			;Set 5th bit as 1
+	STR r6, [r5, #0x3FC]	;Set PA5 High
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0
+	ADD r0,r0, #0		;no ops for pins to catch up
+
+	;Read Rows
+	LDRB r6, [r7, #0x3FC]	;r6 is Port D data
+
+	;pin 0
+	AND r8, r6, #1  		;r8 is masked value
+	CMP r8, #1
+	ITTT EQ 				;is r8 == 1? If yes then Button Pushed!
+	MOVEQ r4, #3			;Move Button into r4
+	MOVEQ r0, #'3'
+	BLEQ output_character	;Print to screen the button Pushed!
+
+	;pin 1
+	AND r8, r6, #2  		;r8 is masked value
+	CMP r8, #2
+	ITTT EQ 				;If equal then Button Pushed!
+	MOVEQ r4, #7			;Move Button into r4
+	MOVEQ r0, #'7'
+	BLEQ output_character	;Print to screen the button Pushed!
+
+	;pin 2
+	AND r8, r6, #4  		;r8 is masked value
+	CMP r8, #4
+	ITTT EQ 				;If equal then Button Pushed!
+	MOVEQ r4, #11			;Move Button into r4
+	MOVEQ r0, #'1'
+	BLEQ output_character	;Print to screen the button Pushed!
+	ITT EQ
+	MOVEQ r0, #'1'
+	BLEQ output_character	;Print to screen the button Pushed!
+
+	;pin 3
+	AND r8, r6, #8  		;r8 is masked value
+	CMP r8, #8
+	ITTT EQ 				;If equal then Button Pushed!
+	MOVEQ r4, #15			;Move Button into r4
+	MOVEQ r0, #'1'
+	BLEQ output_character	;Print to screen the button Pushed!
+	CMP r8, #8
+	ITT EQ
+	MOVEQ r0, #'5'
+	BLEQ output_character	;Print to screen the button Pushed!
 
 
 	;Print out Final Message
 	CMP r4, #16	;No button was pushed message
-	ITTEE EQ
+	ITT EQ
 	LDREQ r0, ptr_prompt_noButtonPushed
 	BLEQ output_string
+	CMP r4, #16	;No button was pushed message
+	ITT NE
 	LDRNE r0, ptr_prompt_buttonPush
 	BLNE output_string
 
@@ -242,28 +403,7 @@ EndUartHandler:
 	BX lr       	; Return
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-Timer_Handler:
 
-	; Your code for your Timer handler goes here.  It is not needed for
-	; Lab #5, but will be used in Lab #6.  It is referenced here because
-	; the interrupt enabled startup code has declared Timer_Handler.
-	; This will allow you to not have to redownload startup code for
-	; Lab #6.  Instead, you can use the same startup code as for Lab #5.
-	; Remember to preserver registers r4-r12 by pushing then popping
-	; them to & from the stack at the beginning & end of the handler.
-
-	BX lr       	; Return
-Switch_Handler:
-
-	; Your code for your Timer handler goes here.  It is not needed for
-	; Lab #5, but will be used in Lab #6.  It is referenced here because
-	; the interrupt enabled startup code has declared Timer_Handler.
-	; This will allow you to not have to redownload startup code for
-	; Lab #6.  Instead, you can use the same startup code as for Lab #5.
-	; Remember to preserver registers r4-r12 by pushing then popping
-	; them to & from the stack at the beginning & end of the handler.
-
-	BX lr       	; Return
 
 
 
