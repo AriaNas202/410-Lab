@@ -10,6 +10,7 @@
 	.global output_string
 	.global output_character
     .global simple_read_character
+    .global modified_int2string
 
 
 
@@ -257,6 +258,137 @@ simple_read_character:
 	POP {r4-r12,lr}   ; Restore registers from stack
 
 	MOV pc, lr	; Return
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+modified_int2string:
+    PUSH {r4-r12,lr}        ; Store any registers in the range of r4 through r12
+                            ; that are used in your routine. Include lr if this
+                            ; routine calls another routine.
+
+
+	;Modifications for CSE 479
+	;Commas are gone
+	;returns base address of end of string in r0
+	;(rn we assume no negative numbers, but i MAYYYYY fix that either here or in float2string)
+
+    ;Arguments
+    ;r0- base address to store string	*
+    ;r1- int to convert 				*
+    ;r2- will become current digit argument
+    ;r3- comma counter (init to 0)
+    ;r4- comma address (has comma hex value stored in it)
+    ;r5- has 10 stored for mod operations
+    ;r6- trash
+    ;;;;;;;Converts all Digits (as ints) in stack to a string
+    ;MOV r3, #0       ;init comma counter to 0
+    ;MOV r4, #','     ;init comma register to ','
+    MOV r5, #10  ;stores 10
+
+
+
+
+
+    ;;;;;;;;Push a terminator so stack knows when to stop
+    MOV r2, #0xFF   ;using 0xFF as stack terminator
+    PUSH {r2}       ;push terminator to stack
+
+
+
+    ;;;;;;;;Handle Base Case 0 (if number were converting is 0 originally)
+    CMP r1, #0              ;Is originally in == 0?
+    BNE ConvertToDigits     ;If out int isnt originally 0 we need to convert it to digits, so branch
+
+    MOV r2, r1              ;Moves r1 (0 int) into r2 so CovertToString works
+    PUSH {r2}               ;Pushes r2 (0 int) to stack
+    B ConvertToString       ;Branches to covert 0 into a string
+
+
+
+    ;;;;;;;;Converts all digits to stack until r1 (original int) is 0
+ConvertToDigits:
+
+    ;Check if r1 is 0 yet
+    CMP r1, #0              ;Is r1 0 yet?
+    BEQ ConvertToString     ;If r1 is 0 then its time to convert into a string
+
+    ;Modulo by 10 (To get rightmost digit)
+    UDIV r2,r1, r5          ;r2=r1/10
+    MUL r2, r2, r5         ; r2=r2*10
+    SUB r2, r1, r2          ; r2=r1-r2 (this should store rightmost digit in r2)
+
+    ;CMP r3, #3 ;compare comma counter to 3
+   ; BNE NoComma1            ;compare comma counter to 3
+    ;MOV r6, r2              ;if comma counter isnt 3, we can skip adding a comma
+   ; MOV r2, r4              ;temporarily store digit in r2 into r6
+   ; PUSH {r2}               ;store ',' in r2
+   ; MOV r2, r6              ;restore digit in r2
+
+
+;NoComma1:
+    PUSH {r2}               ;push current digit (as an int) to stack
+    ;ADD r3,r3,#1 ;increment comma counter
+    UDIV r1, r1, r5        ;move the whole int right by 1 digit (ex. 123 -> 12)
+    B ConvertToDigits       ;branch back to loop to continure to convert r1 until its 0
+
+
+
+
+;;;;;
+ConvertToString:
+
+    POP {r2}                ;get digit to convert into string
+
+
+    CMP r2, #0xFF           ;Did we reach the stack terminator yet?
+    BEQ EndInt2Str          ;If weve hit the stack terminator, were at the EndInt2Str
+
+    ;CMP r2, r4
+    ;BNE NoComma2
+
+    ;STRB r4, [r0]            ;add a comma (which is in r4) at memory address in r0
+
+
+    ;ADD r0, r0, #1           ;increment address for next char
+    ;POP {r2}
+
+
+;NoComma2:
+    ADD r2,r2,#0x30         ;Turn r2 int into ascii
+    STRB r2, [r0]           ;Stores current char (r2) into r0 address
+    ADD r0,r0,#1            ;Increment address for next char
+    ;ADD r3, r3, #1          ;Increment comma counter by 1
+    B ConvertToString
+
+
+    ;;;;;;;
+EndInt2Str:
+
+    MOV r2,#0               ;Stores null terminator in r2
+    STRB r2, [r0]           ;Stores null terminator in memory
+
+    ;i BELIEVE that r0 is being returned WITH the null terminator already in r0, but I will test this to be sure!
+
+
+
+    POP {r4-r12,lr}         ; Restore registers all registers preserved in the
+                            ; PUSH at the top of this routine from the stack.
+    mov pc, lr
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 .end
