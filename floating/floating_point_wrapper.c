@@ -1,4 +1,5 @@
-extern int floating(void);
+extern void floating(void);
+
 
 //Temp placeholder code for testing
 
@@ -6,6 +7,7 @@ extern int floating(void);
 int main()
 {
    floating();
+
 }
 
 
