@@ -1,8 +1,10 @@
 	.data
 	.global floatString1
+	.global prompt_example
 
-prompt_example:        	.string "Example Prompt", 0xA, 0xD, 0
+prompt_example:        	.string "Example Prompt I Will Use as An Example!", 0xA, 0xD, 0
 floatString1:        	.string "999.2578", 0
+floatfloat1:			.float 98.25
 
 exampleFlag:				.word	0x0
 
@@ -16,16 +18,20 @@ exampleFlag:				.word	0x0
 
 	.global floating_init
 	.global floating
+	.global string2float
+	.global float2string
 	.global gpio_init ;Library
 	.global uart_init ;Library
 	.global uart_interrupt_init ;Library
 	.global output_string ;Library
 	.global output_character ;Library
 	.global simple_read_character ;Library
+    .global modified_int2string ;Library
 
 ptr_prompt_example:   			.word prompt_example
 ptr_exampleFlag:				.word exampleFlag
 ptr_floatString1:				.word floatString1
+ptr_floatfloat1:				.word floatfloat1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;this is first called by MAIN
@@ -60,8 +66,21 @@ floating:
 	BL floating_init ;Initialize the FPU for calulations
 
 tempLoop:
-	LDR r0, ptr_floatString1
-	BL string2float
+
+	;test string2float
+	;LDR r0, ptr_floatString1
+	;BL string2float
+
+	;test float2string
+	LDR r0, ptr_floatfloat1
+	ldr r0, [r0]
+	ldr r1, ptr_prompt_example
+	BL float2string
+
+	;test int2string (r0- base address, r1-int to convert; r0-null terminator of string)
+	;ldr r0, ptr_prompt_example
+	;MOV r1, #9876
+	;BL modified_int2string ;this seems to work as intended!
 
 
 
@@ -72,7 +91,9 @@ tempLoop:
 	MOV pc, lr
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+;NOTE this function seems to work HOWEVER
+; (1) does NOT work with negatives (yet) (but im making all the floats signed)
+; (2) it breaks if you put too many funky decimals, but I think that may just be computer hardware limitations, so its still functional in my book
 string2float:
 	PUSH {lr}	; Store register lr on stack
 
@@ -136,10 +157,6 @@ PostDecimal:
 
 
 
-
-
-
-
 DoneString2Float:
 	;Put the Floating ACC (s0) into r0
 	vmov r0, s0
@@ -148,6 +165,57 @@ DoneString2Float:
 
 	POP {lr}
 	MOV pc, lr
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;Doesnt work with negatives (yes) (but im making all the floats signed)
+float2string:
+	PUSH {r4-r5, lr}	; Store register lr on stack
+
+	;r0- floating point number
+	MOV r4, r0 ;needs to persist across a subroutine, so storing it in r4
+	;r1- address of the string
+	MOV r5, r1 ;needs to persist across a subroutine, so storing it in r5
+
+	;separate the number -> (FRONT).(BACK)
+		;get the FRONT (s0)
+	vmov s0, r0				;Put full r0 into s0
+	vcvt.s32.f32 s0,s0		;turn s0 into a int (without rounding) (will trunkate the decimal) (SIGNED!!!!)
+	vcvt.f32.s32 s0,s0		;turn it BACK into a float (decimal will be trunkated but will be in float format) (SIGNED)
+
+		;get the BACK (s1)
+	vmov s1, r0				;Put full r0 into s0
+	vsub.f32 s1, s1, s0		;Sub full number with trunkated number to get just decimal bit
+
+
+	;TURN THE (FRONT) INTO A STRING!!!!
+	mov r0, r5				;put address of string (r1) into r0 (for int2string)
+	vcvt.s32.f32 s0,s0		;turn floating number into an int again so we can feed it into int2string
+	vmov r1, s0				;store Int FRONT (s0) into r1 (for int2string)
+	bl modified_int2string	;stores FRONT in memory, will return new base of string into r0 (currently set to null terminator, but i will override wil a decimal point)
+
+
+	;PUT THE PERIOD IN THE STRING!
+	MOV r5, r0		;int2string returns the new base address of the string into r0, store in r5 for consistancy
+	MOV r0, #0x2E	;store "." into r0
+	STRB r0, [r5]
+
+	;TURN THE (BACK) INTO A STRING!!!!
+
+
+
+
+
+
+
+
+	POP {r4-r5, lr}
+	MOV pc, lr
+
+
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
