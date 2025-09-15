@@ -3,8 +3,8 @@
 	.global prompt_example
 
 prompt_example:        	.string "Example Prompt I Will Use as An Example!", 0xA, 0xD, 0
-floatString1:        	.string "999.2578", 0
-floatfloat1:			.float 98.25
+floatString1:        	.string "-10.0", 0
+floatfloat1:			.float 67.6891
 
 exampleFlag:				.word	0x0
 
@@ -61,21 +61,27 @@ floating_init:
 floating:
 	PUSH {lr}	; Store register lr on stack
 
-
+	;Init the UART so we can print to Putty
+	BL uart_init
 	;Init the FPU
 	BL floating_init ;Initialize the FPU for calulations
 
-tempLoop:
+;;;;;;;;;;;;;;TESTING START~!!!!
 
 	;test string2float
 	;LDR r0, ptr_floatString1
-	;BL string2float
+	;BL string2float ;returns float in r0
+	;NOP
+
 
 	;test float2string
-	LDR r0, ptr_floatfloat1
-	ldr r0, [r0]
-	ldr r1, ptr_prompt_example
-	BL float2string
+	;LDR r0, ptr_floatfloat1
+	;ldr r0, [r0]
+	;ldr r1, ptr_prompt_example
+	;BL float2string
+	;print test of float2string
+	;LDR r0, ptr_prompt_example
+	;bl output_string
 
 	;test int2string (r0- base address, r1-int to convert; r0-null terminator of string)
 	;ldr r0, ptr_prompt_example
@@ -84,7 +90,8 @@ tempLoop:
 
 
 
-	B tempLoop
+
+
 
 
 	POP {lr}
@@ -199,6 +206,7 @@ float2string:
 	MOV r5, r0		;int2string returns the new base address of the string into r0, store in r5 for consistancy
 	MOV r0, #0x2E	;store "." into r0
 	STRB r0, [r5]
+	ADD r5, r5, #1	;increment to the address right after the period
 
 
 	;TURN THE (BACK) (s1) INTO A STRING!!!!
@@ -213,9 +221,15 @@ float2stringFractionBit:
 	;store char at address
 	STRB r3, [r5]				;store current char (r3) into address (r5)
 	add r5, r5, #1				;imcrement address by 1
+	;subtract current int (s3) from the overall (BACK-s1) float
+	vcvt.f32.s32 s3,s3			;turn s3 into a float again (fractional bits have been trunkated)
+	vsub.f32 s1, s1, s3			;subtract the current int (s3) from the overall (BACK-s1) float, storing in (BACK-s1)
 	;see if we're done with fraction bit
-	VCMP.f32 s1, #0.0					;is the (BACK-s1) finished?
+	vmov r3, s1					;i cant figure out vcmp, so im putting the (BACK-s1) regitser in r3 for temporary to do regular cmp
+	CMP r3, #0					;is the (BACK-r3) finished?
 	BNE float2stringFractionBit	;if NOT then we loop back to start
+
+
 
 	;END OF STORING THE ENTIRE FLOAT
 	MOV r3, #0x0				;store null terminator in r3
@@ -223,17 +237,9 @@ float2stringFractionBit:
 
 
 
-
-
-
-
-
 	;end
 	POP {r4-r5, lr}
 	MOV pc, lr
-
-
-
 
 
 
