@@ -200,7 +200,26 @@ float2string:
 	MOV r0, #0x2E	;store "." into r0
 	STRB r0, [r5]
 
-	;TURN THE (BACK) INTO A STRING!!!!
+
+	;TURN THE (BACK) (s1) INTO A STRING!!!!
+	vmov.f32 s2, #10.0			;put 10.0 into s2 so i can use it bellow
+
+float2stringFractionBit:
+	vmul.f32 s1, s1, s2			;multiply FULL (BACK-s1) by 10 (s2)
+	;get head of the (BACK-s1)
+	vcvt.s32.f32 s3,s1			;Turn Float (BACK-s1) into Int, store in s3 as current int placeholder (SIGNED)
+	vmov r3, s3					;put the current char into r# register (I am arbitrarily using r3)
+	add r3, r3, #0x30			;turn Raw int (r3) into char
+	;store char at address
+	STRB r3, [r5]				;store current char (r3) into address (r5)
+	add r5, r5, #1				;imcrement address by 1
+	;see if we're done with fraction bit
+	VCMP.f32 s1, #0.0					;is the (BACK-s1) finished?
+	BNE float2stringFractionBit	;if NOT then we loop back to start
+
+	;END OF STORING THE ENTIRE FLOAT
+	MOV r3, #0x0				;store null terminator in r3
+	STRB r3, [r5]				;store null terminator at end of string
 
 
 
@@ -209,6 +228,7 @@ float2string:
 
 
 
+	;end
 	POP {r4-r5, lr}
 	MOV pc, lr
 
