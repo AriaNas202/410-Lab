@@ -1,12 +1,29 @@
 	.data
-	.global floatString1
 	.global prompt_example
+	.global floatString1
+	.global floatfloat1
+	.global mainMenu
+	.global calcState
 
 prompt_example:        	.string "Example Prompt I Will Use as An Example!", 0xA, 0xD, 0
 floatString1:        	.string "-10.0", 0
 floatfloat1:			.float 67.6891
 
 exampleFlag:				.word	0x0
+
+mainMenu:				.string "WELCOME TO THE CALCULATOR!!!", 0xA, 0xD
+						.string "1) Add", 0xA, 0xD
+						.string "2) Sub", 0xA, 0xD
+						.string "3) Mult", 0xA, 0xD
+						.string "4) Div", 0xA, 0xD
+						.string "5) Sqrt", 0xA, 0xD
+						.string "6) Raise to Two", 0xA, 0xD
+						.string "Hit Any other Key to Quit!", 0xA, 0xD, 0
+
+calcState:				.word 0x0
+
+
+
 
 
 
@@ -16,10 +33,11 @@ exampleFlag:				.word	0x0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	.text
 
-	.global floating_init
 	.global floating
+	.global UART0_Handler
 	.global string2float
 	.global float2string
+	.global floating_init
 	.global gpio_init ;Library
 	.global uart_init ;Library
 	.global uart_interrupt_init ;Library
@@ -32,25 +50,10 @@ ptr_prompt_example:   			.word prompt_example
 ptr_exampleFlag:				.word exampleFlag
 ptr_floatString1:				.word floatString1
 ptr_floatfloat1:				.word floatfloat1
+ptr_mainMenu:					.word mainMenu
+ptr_calcState:					.word calcState
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;this is first called by MAIN
-;inits the keypad to be used on the Aliceboard IG
-;RIGHT NOW Im just gonna use the init Functions I already Have
-floating_init:
-	PUSH {lr}	; Store register lr on stack
 
-	;initialize the FPU :)
-	MOV r0, #0xED88
-	MOVT r0, #0xE000			;CPACR address in r0
-	LDR r1, [r0]				;CPACR data in r1
-	ORR r1, r1, #(0xF << 20)	;set bits 20-23 to enable CP10 and CP11
-	STR r1, [r0]				;store CPAC back
-	DSB							;wait for store to complete
-	ISB							;reset pipeline now the FPU is enabled
-
-	POP {lr}
-	MOV pc, lr
 
 
 
@@ -59,43 +62,188 @@ floating_init:
 ;actually does the little game or whatever
 ;this should ultimately be the overall "Game" printer which controls replay
 floating:
-	PUSH {lr}	; Store register lr on stack
+	PUSH {r4-r5, lr}	; Store register lr on stack
 
 	;Init the UART so we can print to Putty
 	BL uart_init
+	BL uart_interrupt_init
 	;Init the FPU
 	BL floating_init ;Initialize the FPU for calulations
 
-;;;;;;;;;;;;;;TESTING START~!!!!
+startCalc:
+	;Set Calc State Flag to 0 (Waiting) (r4-address; r5-Flag Data)
+	LDR r4, ptr_calcState
+	MOV r5, #0
+	STR r5, [r4]
 
-	;test string2float
-	;LDR r0, ptr_floatString1
-	;BL string2float ;returns float in r0
-	;NOP
+	;Print Menu to Screen
+	LDR r0, ptr_mainMenu
+	BL output_string
+
+	;Loop to Wait for response
+calcPoll:
+	LDR r5, [r4]	;get flag
+	CMP r5, #0
+	BEQ calcPoll	;Flag 0-Keep Polling
+	CMP r5, #1
+	BEQ adding		;Flag 1- Add
+	CMP r5, #2
+	BEQ subbing		;Flag 2- Sub
+	CMP r5, #3
+	BEQ multing		;Flag 3- Mult
+	CMP r5, #4
+	BEQ diving 		;Flag 4- Div
+	CMP r5, #5
+	BEQ sqrting		;Flag 5- Sqrt
+	CMP r5, #6
+	BEQ squaring	;Flag 6- Squaring
+
+	B quitting		;Else Quit
 
 
-	;test float2string
-	;LDR r0, ptr_floatfloat1
-	;ldr r0, [r0]
-	;ldr r1, ptr_prompt_example
-	;BL float2string
-	;print test of float2string
-	;LDR r0, ptr_prompt_example
-	;bl output_string
+adding:
+	MOV r0, #0xC
+	BL output_character
+	MOV r0, #'a'
+	BL output_character
+	B startCalc
 
-	;test int2string (r0- base address, r1-int to convert; r0-null terminator of string)
-	;ldr r0, ptr_prompt_example
-	;MOV r1, #9876
-	;BL modified_int2string ;this seems to work as intended!
+subbing:
+	MOV r0, #0xC
+	BL output_character
+	MOV r0, #'s'
+	BL output_character
+	B startCalc
+	
+multing:
+	MOV r0, #0xC
+	BL output_character
+	MOV r0, #'m'
+	BL output_character
+	B startCalc
+	
+diving:
+	MOV r0, #0xC
+	BL output_character
+	MOV r0, #'d'
+	BL output_character
+	B startCalc
+	
+sqrting:
+	MOV r0, #0xC
+	BL output_character
+	MOV r0, #'q'
+	BL output_character
+	B startCalc
+	
+squaring:
+	MOV r0, #0xC
+	BL output_character
+	MOV r0, #'^'
+	BL output_character
+	B startCalc
+	
+quitting:
+	MOV r0, #0xC
+	BL output_character
+	MOV r0, #'!'
+	BL output_character
+	B startCalc
 
 
 
-
-
-
-
-	POP {lr}
+	POP {r4-r5, lr}
 	MOV pc, lr
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+UART0_Handler:
+	PUSH {r4-r12,lr} ; Spill registers to stack
+
+	;Clear the interrupt
+    MOV r2, #0xC000
+    MOVT r2, #0x4000
+    LDR r3, [r2, #0x044]
+    ORR r3, #0x10
+    STR r3, [r2, #0x044]
+
+	;read the character
+    BL simple_read_character ;character returned in r0
+
+    ;get Current Flag Data (r4-address; r5-Flag Data)
+    LDR r4, ptr_calcState
+    LDR r5, [r4]
+
+    ;Are we Currently in Main Menu?
+    CMP r5, #0
+    BNE EndUartHandler		;Flag is not Main Menu (0), do not process input
+
+    ;Process Input (r0)
+    CMP r0, #0x31			;1 Hit, Flag Updates to 1
+    IT EQ
+    MOVEQ r5, #1
+    CMP r0, #0x32			;2 Hit, Flag Updates to 2
+    IT EQ
+    MOVEQ r5, #2
+    CMP r0, #0x33			;3 Hit, Flag Updates to 3
+    IT EQ
+    MOVEQ r5, #3
+    CMP r0, #0x34			;4 Hit, Flag Updates to 4
+    IT EQ
+    MOVEQ r5, #4
+    CMP r0, #0x35			;5 Hit, Flag Updates to 5
+    IT EQ
+    MOVEQ r5, #5
+    CMP r0, #0x36			;6 Hit, Flag Updates to 6
+    IT EQ
+    MOVEQ r5, #6
+    CMP r5, #0				;Else, Random Key Hit, Flag Updates to 7
+    IT EQ					;Note We're comparing r5 to 0 here because, if we made it this far then we KNOW r5 started off as 0 (Main Menu)
+    MOVEQ r5, #7    		;which means if the other operations didnt trigger, then r5 would still be 0, meaning "Else" we quit
+
+
+
+
+
+EndUartHandler:
+
+	;Store Updated Flag Back
+    STR r5, [r4]	;Note: If original flag wasn't 0, then we're just storing 0 back
+
+	;End
+	POP {r4-r12,lr} ; Pop registers from stack
+	BX lr       	; Return
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;NOTE this function seems to work HOWEVER
@@ -244,7 +392,24 @@ float2stringFractionBit:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;THIS WHOLE FUNCTION IS UNCESSESARY BECAUSE CSS DOES THE INIT FOR YOU BUT IM KEEPING IT HERE AS PROOF I READ THE DOCS THAT SAID YOU NEED TO DO IT
+;this is first called by MAIN
+;inits the keypad to be used on the Aliceboard IG
+;RIGHT NOW Im just gonna use the init Functions I already Have
+floating_init:
+	PUSH {lr}	; Store register lr on stack
 
+	;initialize the FPU :)
+	MOV r0, #0xED88
+	MOVT r0, #0xE000			;CPACR address in r0
+	LDR r1, [r0]				;CPACR data in r1
+	ORR r1, r1, #(0xF << 20)	;set bits 20-23 to enable CP10 and CP11
+	STR r1, [r0]				;store CPAC back
+	DSB							;wait for store to complete
+	ISB							;reset pipeline now the FPU is enabled
 
+	POP {lr}
+	MOV pc, lr
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	.end
