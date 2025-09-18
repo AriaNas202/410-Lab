@@ -251,18 +251,114 @@ subbingPoll3:
     B startCalc
 
 multing:
-	MOV r0, #0xC
-	BL output_character
-	MOV r0, #'m'
-	BL output_character
-	B startCalc
+    ;FIRST NUMBER GET!
+    MOV r0, #0xC    ;Clear Screen
+    BL output_character
+    LDR r0, ptr_firstNumberMenu ;print Menu
+    BL output_string
+multPoll1:
+    LDR r7, [r6]    ;get substate?
+    CMP r7, #2      ;see if we're done getting first number?
+    BNE multPoll1
+
+    ;SECOND NUMBER GET!
+    MOV r0, #0xC    ;Clear Screen
+    BL output_character
+    LDR r0, ptr_secondNumberMenu ;print Menu
+    BL output_string
+multPoll2:
+    LDR r7, [r6]    ;get substate?
+    CMP r7, #3      ;see if we're done getting first number?
+    BNE multPoll2
+
+    ;ROUNDING GET!
+    MOV r0, #0xC    ;Clear Screen
+    BL output_character
+    LDR r0, ptr_roundingMenu ;print Menu
+    BL output_string
+multPoll3:
+    LDR r7, [r6]    ;get substate?
+    CMP r7, #4      ;see if we're done getting first number?
+    BNE multPoll3
+
+    ;Do Equation (WILL EVENTUALLY DO ROUNDING, BUT NOT RIGHT NOW!!!!)
+    MOV r0, #0xC    ;Clear Screen
+    BL output_character
+    ;Get First Number
+    LDR r0, ptr_firstFloatString	;First Float (r0-address)
+    BL string2float
+    VMOV s16, r0						;Float 1 get (s16- float1)
+    ;Get Second Number
+    LDR r0, ptr_secondFloatString
+    BL string2float
+    VMOV s17, r0						;Float 2 get (s17-float2)
+	;Do calculations
+    vmul.f32 s18,s16,s17				;Do Calculation (s18-Floating Result)
+    VMOV r0,s18						;Put result in r0 (argument)
+    LDR r1, ptr_resultString		;Address to result string in r1 (argument)
+    BL float2string					;Turns float into String
+    ;Print result
+    LDR r0, ptr_resultString
+    BL output_string
+
+
+
+    B startCalc
 
 diving:
-	MOV r0, #0xC
-	BL output_character
-	MOV r0, #'d'
-	BL output_character
-	B startCalc
+    ;FIRST NUMBER GET!
+    MOV r0, #0xC    ;Clear Screen
+    BL output_character
+    LDR r0, ptr_firstNumberMenu ;print Menu
+    BL output_string
+divPoll1:
+    LDR r7, [r6]    ;get substate?
+    CMP r7, #2      ;see if we're done getting first number?
+    BNE divPoll1
+
+    ;SECOND NUMBER GET!
+    MOV r0, #0xC    ;Clear Screen
+    BL output_character
+    LDR r0, ptr_secondNumberMenu ;print Menu
+    BL output_string
+divPoll2:
+    LDR r7, [r6]    ;get substate?
+    CMP r7, #3      ;see if we're done getting first number?
+    BNE divPoll2
+
+    ;ROUNDING GET!
+    MOV r0, #0xC    ;Clear Screen
+    BL output_character
+    LDR r0, ptr_roundingMenu ;print Menu
+    BL output_string
+divPoll3:
+    LDR r7, [r6]    ;get substate?
+    CMP r7, #4      ;see if we're done getting first number?
+    BNE divPoll3
+
+    ;Do Equation (WILL EVENTUALLY DO ROUNDING, BUT NOT RIGHT NOW!!!!)
+    MOV r0, #0xC    ;Clear Screen
+    BL output_character
+    ;Get First Number
+    LDR r0, ptr_firstFloatString	;First Float (r0-address)
+    BL string2float
+    VMOV s16, r0						;Float 1 get (s16- float1)
+    ;Get Second Number
+    LDR r0, ptr_secondFloatString
+    BL string2float
+    VMOV s17, r0						;Float 2 get (s17-float2)
+	;Do calculations
+    vdiv.f32 s18,s16,s17				;Do Calculation (s18-Floating Result)
+    VMOV r0,s18						;Put result in r0 (argument)
+    LDR r1, ptr_resultString		;Address to result string in r1 (argument)
+    BL float2string					;Turns float into String
+    ;Print result
+    LDR r0, ptr_resultString
+    BL output_string
+
+
+
+    B startCalc
 
 sqrting:
 	MOV r0, #0xC
@@ -571,8 +667,216 @@ fH23:
     STR r10, [r9]                           ;Store current index back
     B EndUartHandler
 
-flagHandler3:
-flagHandler4:
+flagHandler3:; multiplying
+    ;Which SubString (1)
+    CMP r7, #1 ;Dealing with First Float String
+    BEQ fH31
+    CMP r7, #2 ;Dealing with Second Float String
+    BEQ fH32
+    CMP r7, #3 ;Inputing Rounding Dec
+    BEQ fH33
+    B EndUartHandler
+fH31:
+    ;NEED TO COMPARE CURRENT CHAR TO ENTER
+    CMP r0, #0xD    ;Is Enter the current char?
+    ITTTT EQ
+    LDREQ r8, ptr_firstFloatString          ;get first float string (r8-Address)
+    LDREQ r9, ptr_floatStringIndex          ;get current index (r9-address, r10-data)
+    LDREQ r10, [r9]
+    ADDEQ r8, r8, r10                       ;do math to get where we have to store this first FLOAT char
+    ITTT EQ
+    MOVEQ r0, #0                            ;Move NULL into Current Char Hit
+    STREQ r0, [r8]                          ;store Hit Button in address
+    MOVEQ r7, #2                            ;Change to Subflag 2 (we're done with first number, going to second)
+    ;STREQ r7, [r6]
+    ITTT EQ
+    MOVEQ r10, #0                           ;Clear index
+    STREQ r10, [r9]
+    BEQ EndUartHandler                      ;Branch to end
+
+
+
+
+    LDR r8, ptr_firstFloatString                ;get first float string (r8-Address)
+    LDR r9, ptr_floatStringIndex            ;get current index (r9-address, r10-data)
+    LDR r10, [r9]
+    ADD r8, r8, r10                          ;do math to get where we have to store this first FLOAT char
+    STR r0, [r8]                            ;store Hit Button in address
+    BL output_character                     ;Print the Current Character (feedback Input)
+    ADD r10, r10, #1                        ;Add 1 to current index
+    STR r10, [r9]                           ;Store current index back
+    B EndUartHandler
+
+fH32:
+    ;NEED TO COMPARE CURRENT CHAR TO ENTER
+    CMP r0, #0xD    ;Is Enter the current char?
+    ITTTT EQ
+    LDREQ r8, ptr_secondFloatString          ;get second float string (r8-Address)
+    LDREQ r9, ptr_floatStringIndex          ;get current index (r9-address, r10-data)
+    LDREQ r10, [r9]
+    ADDEQ r8, r8, r10                       ;do math to get where we have to store this char
+    ITTT EQ
+    MOVEQ r0, #0                            ;Move NULL into Current Char Hit
+    STREQ r0, [r8]                          ;store Hit Button in address
+    MOVEQ r7, #3                            ;Change to Subflag 3 (we're done with second number, going to 3ed)
+    ;STREQ r7, [r6]
+    ITTT EQ
+    MOVEQ r10, #0                           ;Clear index
+    STREQ r10, [r9]
+    BEQ EndUartHandler                      ;Branch to end
+
+
+
+
+    LDR r8, ptr_secondFloatString                ;get first float string (r8-Address)
+    LDR r9, ptr_floatStringIndex            ;get current index (r9-address, r10-data)
+    LDR r10, [r9]
+    ADD r8, r8, r10                          ;do math to get where we have to store this char
+    STR r0, [r8]                            ;store Hit Button in address
+    BL output_character                     ;Print the Current Character (feedback Input)
+    ADD r10, r10, #1                        ;Add 1 to current index
+    STR r10, [r9]                           ;Store current index back
+    B EndUartHandler
+
+
+
+fH33:
+    ;NEED TO COMPARE CURRENT CHAR TO ENTER
+    CMP r0, #0xD    ;Is Enter the current char?
+    ITTTT EQ
+    LDREQ r8, ptr_roundingString          	;get rounding string (r8-Address)
+    LDREQ r9, ptr_floatStringIndex          ;get current index (r9-address, r10-data)
+    LDREQ r10, [r9]
+    ADDEQ r8, r8, r10                       ;do math to get where we have to store this  char
+    ITTT EQ
+    MOVEQ r0, #0                            ;Move NULL into Current Char Hit
+    STREQ r0, [r8]                          ;store Hit Button in address
+    MOVEQ r7, #4                            ;Change to Subflag 4 (we're done with 3ed  number, end adding)
+    ;STREQ r7, [r6]
+    ITTT EQ
+    MOVEQ r10, #0                           ;Clear index
+    STREQ r10, [r9]
+    BEQ EndUartHandler                      ;Branch to end
+
+
+
+
+    LDR r8, ptr_roundingString              ;get first float string (r8-Address)
+    LDR r9, ptr_floatStringIndex            ;get current index (r9-address, r10-data)
+    LDR r10, [r9]
+    ADD r8, r8, r10                          ;do math to get where we have to store this char
+    STR r0, [r8]                            ;store Hit Button in address
+    BL output_character                     ;Print the Current Character (feedback Input)
+    ADD r10, r10, #1                        ;Add 1 to current index
+    STR r10, [r9]                           ;Store current index back
+    B EndUartHandler
+
+
+flagHandler4:;dividing
+    ;Which SubString (1)
+    CMP r7, #1 ;Dealing with First Float String
+    BEQ fH41
+    CMP r7, #2 ;Dealing with Second Float String
+    BEQ fH42
+    CMP r7, #3 ;Inputing Rounding Dec
+    BEQ fH43
+    B EndUartHandler
+fH41:
+    ;NEED TO COMPARE CURRENT CHAR TO ENTER
+    CMP r0, #0xD    ;Is Enter the current char?
+    ITTTT EQ
+    LDREQ r8, ptr_firstFloatString          ;get first float string (r8-Address)
+    LDREQ r9, ptr_floatStringIndex          ;get current index (r9-address, r10-data)
+    LDREQ r10, [r9]
+    ADDEQ r8, r8, r10                       ;do math to get where we have to store this first FLOAT char
+    ITTT EQ
+    MOVEQ r0, #0                            ;Move NULL into Current Char Hit
+    STREQ r0, [r8]                          ;store Hit Button in address
+    MOVEQ r7, #2                            ;Change to Subflag 2 (we're done with first number, going to second)
+    ;STREQ r7, [r6]
+    ITTT EQ
+    MOVEQ r10, #0                           ;Clear index
+    STREQ r10, [r9]
+    BEQ EndUartHandler                      ;Branch to end
+
+
+
+
+    LDR r8, ptr_firstFloatString                ;get first float string (r8-Address)
+    LDR r9, ptr_floatStringIndex            ;get current index (r9-address, r10-data)
+    LDR r10, [r9]
+    ADD r8, r8, r10                          ;do math to get where we have to store this first FLOAT char
+    STR r0, [r8]                            ;store Hit Button in address
+    BL output_character                     ;Print the Current Character (feedback Input)
+    ADD r10, r10, #1                        ;Add 1 to current index
+    STR r10, [r9]                           ;Store current index back
+    B EndUartHandler
+
+fH42:
+    ;NEED TO COMPARE CURRENT CHAR TO ENTER
+    CMP r0, #0xD    ;Is Enter the current char?
+    ITTTT EQ
+    LDREQ r8, ptr_secondFloatString          ;get second float string (r8-Address)
+    LDREQ r9, ptr_floatStringIndex          ;get current index (r9-address, r10-data)
+    LDREQ r10, [r9]
+    ADDEQ r8, r8, r10                       ;do math to get where we have to store this char
+    ITTT EQ
+    MOVEQ r0, #0                            ;Move NULL into Current Char Hit
+    STREQ r0, [r8]                          ;store Hit Button in address
+    MOVEQ r7, #3                            ;Change to Subflag 3 (we're done with second number, going to 3ed)
+    ;STREQ r7, [r6]
+    ITTT EQ
+    MOVEQ r10, #0                           ;Clear index
+    STREQ r10, [r9]
+    BEQ EndUartHandler                      ;Branch to end
+
+
+
+
+    LDR r8, ptr_secondFloatString                ;get first float string (r8-Address)
+    LDR r9, ptr_floatStringIndex            ;get current index (r9-address, r10-data)
+    LDR r10, [r9]
+    ADD r8, r8, r10                          ;do math to get where we have to store this char
+    STR r0, [r8]                            ;store Hit Button in address
+    BL output_character                     ;Print the Current Character (feedback Input)
+    ADD r10, r10, #1                        ;Add 1 to current index
+    STR r10, [r9]                           ;Store current index back
+    B EndUartHandler
+
+
+
+fH43:
+    ;NEED TO COMPARE CURRENT CHAR TO ENTER
+    CMP r0, #0xD    ;Is Enter the current char?
+    ITTTT EQ
+    LDREQ r8, ptr_roundingString          	;get rounding string (r8-Address)
+    LDREQ r9, ptr_floatStringIndex          ;get current index (r9-address, r10-data)
+    LDREQ r10, [r9]
+    ADDEQ r8, r8, r10                       ;do math to get where we have to store this  char
+    ITTT EQ
+    MOVEQ r0, #0                            ;Move NULL into Current Char Hit
+    STREQ r0, [r8]                          ;store Hit Button in address
+    MOVEQ r7, #4                            ;Change to Subflag 4 (we're done with 3ed  number, end adding)
+    ;STREQ r7, [r6]
+    ITTT EQ
+    MOVEQ r10, #0                           ;Clear index
+    STREQ r10, [r9]
+    BEQ EndUartHandler                      ;Branch to end
+
+
+
+
+    LDR r8, ptr_roundingString              ;get first float string (r8-Address)
+    LDR r9, ptr_floatStringIndex            ;get current index (r9-address, r10-data)
+    LDR r10, [r9]
+    ADD r8, r8, r10                          ;do math to get where we have to store this char
+    STR r0, [r8]                            ;store Hit Button in address
+    BL output_character                     ;Print the Current Character (feedback Input)
+    ADD r10, r10, #1                        ;Add 1 to current index
+    STR r10, [r9]                           ;Store current index back
+    B EndUartHandler
+
+
 flagHandler5:
 flagHandler6:
 EndUartHandler:
