@@ -70,6 +70,7 @@ rounding:               .word 0x0
 	.global output_character ;Library
 	.global simple_read_character ;Library
     .global modified_int2string ;Library
+    .global string2int ;Library
 
 
 ptr_exampleFlag:				.word exampleFlag
@@ -105,8 +106,18 @@ floatTester:
 
 string2round:
 	PUSH {r4-r12, lr}	; Store register lr on stack
-	;r0-address of string
+
+	;GET ARGUMENTS MYSELF (it will always be pulling from the same place)
+
 	;r1-# of decimals we're rounding to (int)
+	LDR r0, ptr_roundingString
+	BL string2int
+	MOV r1, r0
+	;r0-address of string
+	LDR r0, ptr_resultString
+
+
+
 decimalFinder:
 	ldrb r2, [r0],#1		;get current char in r2
 	CMP r2, #0x2E		;is the current char a "."
@@ -252,6 +263,11 @@ addingPoll3:
     VMOV r0,s18						;Put result in r0 (argument)
     LDR r1, ptr_resultString		;Address to result string in r1 (argument)
     BL float2string					;Turns float into String
+
+    ;Round
+    bl string2round
+
+
     ;Print result
     LDR r0, ptr_resultString
     BL output_string
@@ -308,6 +324,10 @@ subbingPoll3:
     VMOV r0,s18						;Put result in r0 (argument)
     LDR r1, ptr_resultString		;Address to result string in r1 (argument)
     BL float2string					;Turns float into String
+
+    ;Round
+    bl string2round
+
     ;Print result
     LDR r0, ptr_resultString
     BL output_string
@@ -363,6 +383,10 @@ multPoll3:
     VMOV r0,s18						;Put result in r0 (argument)
     LDR r1, ptr_resultString		;Address to result string in r1 (argument)
     BL float2string					;Turns float into String
+
+    ;Round
+    bl string2round
+
     ;Print result
     LDR r0, ptr_resultString
     BL output_string
@@ -418,6 +442,10 @@ divPoll3:
     VMOV r0,s18						;Put result in r0 (argument)
     LDR r1, ptr_resultString		;Address to result string in r1 (argument)
     BL float2string					;Turns float into String
+
+    ;Round
+    bl string2round
+
     ;Print result
     LDR r0, ptr_resultString
     BL output_string
@@ -459,6 +487,10 @@ sqrtPoll2:
     VMOV r0,s18						;Put result in r0 (argument)
     LDR r1, ptr_resultString		;Address to result string in r1 (argument)
     BL float2string					;Turns float into String
+
+    ;Round
+    bl string2round
+
     ;Print result
     LDR r0, ptr_resultString
     BL output_string
@@ -500,6 +532,10 @@ squarePoll2:
     VMOV r0,s18						;Put result in r0 (argument)
     LDR r1, ptr_resultString		;Address to result string in r1 (argument)
     BL float2string					;Turns float into String
+
+    ;Round
+    bl string2round
+
     ;Print result
     LDR r0, ptr_resultString
     BL output_string
