@@ -17,7 +17,7 @@
     .global roundingString
     .global resultString
 
-floatString1:        	.string "-10.0", 0
+floatString1:        	.string "67.6891", 0
 floatfloat1:			.float 67.6891
 
 exampleFlag:				.word	0x0
@@ -61,6 +61,8 @@ rounding:               .word 0x0
 	.global string2float
 	.global float2string
 	.global floating_init
+	.global floatTester ;temp WILL DELETE!!!!
+	.global string2round
 	.global gpio_init ;Library
 	.global uart_init ;Library
 	.global uart_interrupt_init ;Library
@@ -88,7 +90,71 @@ ptr_secondFloatString:			.word secondFloatString
 ptr_roundingString:				.word roundingString
 ptr_resultString:				.word resultString
 
+floatTester:
+	PUSH {r4-r12,s16-s20, lr}	; Store register lr on stack
+	LDR r0, ptr_floatString1
+	MOV r1, #4
+	BL string2round
 
+
+	POP {r4-r12,s16-s20, lr}
+	MOV pc, lr
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+string2round:
+	PUSH {r4-r12, lr}	; Store register lr on stack
+	;r0-address of string
+	;r1-# of decimals we're rounding to (int)
+decimalFinder:
+	ldrb r2, [r0],#1		;get current char in r2
+	CMP r2, #0x2E		;is the current char a "."
+	BNE decimalFinder	;If NOT decimal then keep polling
+
+	;Now we're right AFTER the decimal
+	MOV r2, #1			;initialize ACC for how far in the string we've gone (r2-ACC; init 1)
+processRounding:
+	;are we at the appropriate decimal place?
+	CMP r1, r2					;compare argument int (r1) with ACC (r2)
+	BEQ doRoundingFunction		;We're at the appropriate decimal place! Go to do rounding!
+	ADD r2, r2, #1				;increase ACC
+	ADD r0, r0, #1				;increase Address
+
+	;check if new spot is null
+	LDRb r3, [r0]		;get current char
+	CMP r3, #0			;IS current char null?
+	ITTTT EQ
+	MOVEQ r3, #0x30
+	STRbEQ r3, [r0]		;if yes then we store "0" at the current address
+	MOVEQ r3, #0
+	STRbEQ r3, [r0, #1]		;store NULL at next address
+
+	B processRounding
+
+doRoundingFunction:
+	;were on the LAST digit in accepted string
+	;which way are we rounding? (less than 5, do nothing)
+	LDRB r3, [r0, #1]		;get char AFTER current char (r3)
+	CMP r3, #0x35
+	BLT finishRounding	;branch if less than 5 (either 0-4 or NULL)
+
+	;Increase the number
+	LDRB r3, [r0]
+	ADD r3,r3,#1	;increase current char by 1
+	STRB r3, [r0]	;store updated char back
+
+finishRounding:
+	MOV r3, #0			;store NULL in next char over
+	STRB r3, [r0,#1]
+
+
+
+
+
+
+	POP {r4-r12, lr}
+	MOV pc, lr
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;This is the second function to be called by MAIN
