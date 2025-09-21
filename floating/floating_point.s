@@ -659,7 +659,7 @@ fH11:
     LDR r9, ptr_floatStringIndex            ;get current index (r9-address, r10-data)
     LDR r10, [r9]
     ADD r8, r8, r10                          ;do math to get where we have to store this first FLOAT char
-    STR r0, [r8]                            ;store Hit Button in address
+    STRB r0, [r8]                            ;store Hit Button in address
     BL output_character                     ;Print the Current Character (feedback Input)
     ADD r10, r10, #1                        ;Add 1 to current index
     STR r10, [r9]                           ;Store current index back
@@ -690,7 +690,7 @@ fH12:
     LDR r9, ptr_floatStringIndex            ;get current index (r9-address, r10-data)
     LDR r10, [r9]
     ADD r8, r8, r10                          ;do math to get where we have to store this char
-    STR r0, [r8]                            ;store Hit Button in address
+    STRb r0, [r8]                            ;store Hit Button in address
     BL output_character                     ;Print the Current Character (feedback Input)
     ADD r10, r10, #1                        ;Add 1 to current index
     STR r10, [r9]                           ;Store current index back
@@ -723,7 +723,7 @@ fH13:
     LDR r9, ptr_floatStringIndex            ;get current index (r9-address, r10-data)
     LDR r10, [r9]
     ADD r8, r8, r10                          ;do math to get where we have to store this char
-    STR r0, [r8]                            ;store Hit Button in address
+    STRb r0, [r8]                            ;store Hit Button in address
     BL output_character                     ;Print the Current Character (feedback Input)
     ADD r10, r10, #1                        ;Add 1 to current index
     STR r10, [r9]                           ;Store current index back
@@ -764,7 +764,7 @@ fH21:
     LDR r9, ptr_floatStringIndex            ;get current index (r9-address, r10-data)
     LDR r10, [r9]
     ADD r8, r8, r10                          ;do math to get where we have to store this first FLOAT char
-    STR r0, [r8]                            ;store Hit Button in address
+    STRb r0, [r8]                            ;store Hit Button in address
     BL output_character                     ;Print the Current Character (feedback Input)
     ADD r10, r10, #1                        ;Add 1 to current index
     STR r10, [r9]                           ;Store current index back
@@ -795,7 +795,7 @@ fH22:
     LDR r9, ptr_floatStringIndex            ;get current index (r9-address, r10-data)
     LDR r10, [r9]
     ADD r8, r8, r10                          ;do math to get where we have to store this char
-    STR r0, [r8]                            ;store Hit Button in address
+    STRb r0, [r8]                            ;store Hit Button in address
     BL output_character                     ;Print the Current Character (feedback Input)
     ADD r10, r10, #1                        ;Add 1 to current index
     STR r10, [r9]                           ;Store current index back
@@ -824,13 +824,26 @@ EndUartHandler:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;NOTE this function seems to work HOWEVER
-; (1) does NOT work with negatives (yet) (but im making all the floats signed)
-; (2) it breaks if you put too many funky decimals, but I think that may just be computer hardware limitations, so its still functional in my book
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 string2float:
-	PUSH {lr}	; Store register lr on stack
+	PUSH {r4, lr}	; Store register lr on stack
 
 	;r0 -address of string which is a float
+
+    ;NEGATIVE HANDLING
+    LDRB r4, [r0]        ;get first char in string
+    CMP r4, #0x2D       ;is first char negative sign "-"?
+    ITTE EQ
+    MOVEQ r4, #1        ;If first char negative ->Store 1 in r4
+    ADDEQ r0, r0, #1    ;Imcrement address (r0) to be one space after negative
+    MOVNE r4, #0        ;If first char NOT -> store 0 in r4
+
+
+
+
 
 	;initialize accumulator
 	;MOV r0, #0
@@ -891,24 +904,47 @@ PostDecimal:
 
 
 DoneString2Float:
-	;Put the Floating ACC (s0) into r0
+
+	;Turn result negative if necessary
+    CMP r4, #1  ;if r4 is 1, then number should be negative
+    BNE string2floatNonNegative
+    VNEG.f32 s0,s0    ;turn result negative if needed
+string2floatNonNegative:
+
+    ;Put the Floating ACC (s0) into r0
 	vmov r0, s0
 
 
 
-	POP {lr}
+	POP {r4, lr}
 	MOV pc, lr
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;Doesnt work with negatives (yes) (but im making all the floats signed)
 float2string:
-	PUSH {r4-r5, lr}	; Store register lr on stack
+	PUSH {r5, lr}	; Store register lr on stack
 
 	;r0- floating point number
-	MOV r4, r0 ;needs to persist across a subroutine, so storing it in r4
 	;r1- address of the string
 	MOV r5, r1 ;needs to persist across a subroutine, so storing it in r5
+
+
+
+
+    ;CHECK FOR NEGATIVE
+    AND r2, r0, #0x80000000 ;mask float (r2)
+    CMP r2, #0
+    BEQ float2stringNonNegative
+
+    ;Its Negative
+    MOV r2, #0x2D           ;put "-" into r2
+    STRB r2, [r5],#1        ;store "-" into string
+    ADD r1, r1, #1          ;Update both address registers (r0 and r1) (remind me again why I made 2 address registers?)
+    BIC r0, #0x80000000     ;make float positive (bit clear MSB)
+
+
+float2stringNonNegative:
 
 	;separate the number -> (FRONT).(BACK)
 		;get the FRONT (s0)
@@ -964,9 +1000,8 @@ float2stringFractionBit:
 
 
 	;end
-	POP {r4-r5, lr}
+	POP {r5, lr}
 	MOV pc, lr
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
