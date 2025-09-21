@@ -150,17 +150,70 @@ doRoundingFunction:
 	CMP r3, #0x35
 	BLT finishRounding	;branch if less than 5 (either 0-4 or NULL)
 
-	;Increase the number
+	;Increase the number if needed
 	LDRB r3, [r0]
-	ADD r3,r3,#1	;increase current char by 1
-	STRB r3, [r0]	;store updated char back
+	cmp r3, #0x39
+	IT EQ
+	MOVEQ r4, r0					;we need to keep track of where the end of the string is while moving left, so store r3 address in r4
+	BEQ nineRoundingHandle		;Is the current char 9? If yes then we have to keep traveling left to increase number
+
+
+	;we're not dealing with 9, so just increase the char we're on
+	ADD r3,r3,#1		;increase current char by 1
+	STRB r3, [r0]		;store updated char back
+	B finishRounding
+
+
+
+
+
+nineRoundingHandle:
+	;r4- current address
+
+	;store 0 in the current char
+	MOV r3, #0x30
+	STRB r3, [r4]
+
+	;move to the left one
+	SUB r4, r4, #1
+	;get new current char (to left)
+	LDRB r3, [r4]
+
+	;is the left a decimal? (skip if so)
+	CMP r3, #0x2E
+	BEQ handleDecimalPointRounding ;if yes then handle it
+
+	;is the left another 9? (go back to rounding handle if so)
+	CMP r3, #0x39
+	BEQ nineRoundingHandle
+
+	;if we made it here the left number is not nine NOR a decimal, so increase it and store it back
+	ADD r3,r3,#1
+	STRB r3, [r4]
+	B finishRounding
+
+
+
+handleDecimalPointRounding: ;this is when we hit a 9 which needs to be rounded up across a decimal point
+	;r4- current char (where the decimal place is)
+
+	;get the char before decimal place
+	SUB r4, r4, #1
+	LDRB r3, [r4]
+
+	CMP r3, #0x39 			;is the char BEFORE the decimal ALSO a nine?
+	BEQ nineRoundingHandle	;if yes then branch back to handle the nine rounding
+
+	ADD r3, r3, #1 			;if not then we just increase the number and finish
+	STRB r3, [r4]
+	B finishRounding
+
+
+
 
 finishRounding:
 	MOV r3, #0			;store NULL in next char over
 	STRB r3, [r0,#1]
-
-
-
 
 
 
@@ -177,8 +230,7 @@ floating:
 	;Init the UART so we can print to Putty
 	BL uart_init
 	BL uart_interrupt_init
-	;Init the FPU
-	BL floating_init ;Initialize the FPU for calulations
+
 
 startCalc:
 	;Set Calc State Flag to 0 (Waiting) (r4-address; r5-Flag Data)
