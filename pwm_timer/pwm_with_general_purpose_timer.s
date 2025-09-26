@@ -18,14 +18,15 @@ calcState:				.word 0x0
 
 	.global pwmTimer
 	.global Timer_Handler
-	;.global gpio_init ;Library
-	;.global uart_init ;Library
-	;.global uart_interrupt_init ;Library
-	;.global output_string ;Library
-	;.global output_character ;Library
-	;.global simple_read_character ;Library
-    ;.global modified_int2string ;Library
-    ;.global string2int ;Library
+	.global timer_interrupt_init ;Library
+	.global gpio_init ;Library
+	.global uart_init ;Library
+	.global uart_interrupt_init ;Library
+	.global output_string ;Library
+	.global output_character ;Library
+	.global simple_read_character ;Library
+    .global modified_int2string ;Library
+    .global string2int ;Library
 
 
 
@@ -41,8 +42,11 @@ pwmTimer:
 	PUSH {r4-r12, lr}	; Store register lr on stack
 
 	;Init the UART so we can print to Putty
-	;BL uart_init
-	;BL uart_interrupt_init
+	BL uart_init				;Print Menu and Test Functions
+	BL gpio_init				;configs GPIO so we can use light
+	bl timer_interrupt_init		;configures timer to interrupt
+
+
 
 infinLoopTemp:
 	B infinLoopTemp
@@ -69,6 +73,9 @@ Timer_Handler:
 	LDRB r1, [r0, #0x24]
 	ORR r1, r1, #0x1
 	STRB r1, [r0, #0x24]
+
+	MOV r0, #0x30
+	BL output_character
 
 
 
