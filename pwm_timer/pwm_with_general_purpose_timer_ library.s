@@ -12,10 +12,36 @@
 	.global output_character
     .global simple_read_character
     .global modified_int2string
+    .global modified_illuminate_RGB_LED
 
 
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 timer_interrupt_init:
+	PUSH {r4-r12, lr}
+
+
+	;Argument Put in r0
+	;0==Blinky Speed
+	;1==Advanced Speed
+	;Variable Speed Stored in r4
+				;How many clicks should we go before we interrupt?
+				;16 MHz clock (16 million clock cycles/second)
+	CMP r0, #0
+	ITTEE EQ
+    MOVEQ r4, #0x1200
+    MOVTEQ r4, #0x007A	;Blinky Speed (8 million clicks) (Once Every Half Second, 2 Times Per Second)
+	MOVNE r4, #0x7100
+    MOVTNE r4, #0x0002	;Advanced Speed (160,000 clicks) (100 Times Per Second)
+    ;want advanced to go off MORE so lessen the variable
+    ;HUMANS need AT LEAST 60 interrupts per second (for advanced) (not just 2)
+    ;We can make it 100 interrupts which makes it easy for the percentage I think
+
+
+
+
 
     ;Connect Clock to timer
     MOV r0, #0xE000
@@ -55,19 +81,20 @@ timer_interrupt_init:
 
     STR r1, [r0, #0x4]
 
-    ;Set up interval period (
+    ;Set up interval period (MAKING THIS A VARIABLE AMOUNT!)
     MOV r0, #0x0000
     MOVT r0, #0x4003
 
     LDR r1, [r0, #0x028]
 
-	;How many clicks should we go before we interrupt?
-	; 16 MHz clock (16 million clock cycles/second)
-	;Init to set off once every half second (8 million)
-    MOV r1, #0x1200
-    MOVT r1, #0x007A
+			;How many clicks should we go before we interrupt?
+			; 16 MHz clock (16 million clock cycles/second)
+			;Init to set off once every half second (8 million)
+    ;MOV r1, #0x1200
+    ;MOVT r1, #0x007A
+    ;I MADE THIS A VARIABLE TIME!!!!!!!
 
-	STR r1, [r0, #0x028]
+	STR r4, [r0, #0x028]
 
     ;Enable timer to interrupt processor
 	MOV r0, #0x0000
@@ -99,7 +126,8 @@ timer_interrupt_init:
 
     STR r1, [r0, #0xC]
 
-	MOV pc, lr		;Return
+	POP {r4-r12,lr}   		;Restore registers from stack
+	MOV pc, lr
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 gpio_init:
@@ -424,6 +452,74 @@ EndInt2Str:
     POP {r4-r12,lr}         ; Restore registers all registers preserved in the
                             ; PUSH at the top of this routine from the stack.
     mov pc, lr
+
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;modified to NOT include purple, yellow, white; only RGB and OFF
+modified_illuminate_RGB_LED:
+	PUSH {r4-r12,lr} ; Spill registers to stack
+
+
+    ;ro- Color to be displayed
+
+    ;r1- address bucket
+    ;r2- regsiter data bucket
+    ;r3 - trash
+
+    ;Red    1    (pin 1)
+    ;Blue   2    (pin 2)
+    ;Green  3    (pin 3)
+    ;OFF 0 (ALL PINS OFF)
+
+
+
+    ;Get Register which controls the light
+    MOV r1, #0x5000
+    MOVT r1, #0x4002 ; base address for GPIO Port F
+    LDR r2, [r1, #0x3FC]    ;Puts the data from reg into r2
+
+    ;Figure out what color the light is supposed to be
+    CMP r0, #1
+    BEQ Red     ;If red branch to red
+    CMP r0, #2
+    BEQ Blue    ;If blue branch to blue
+    CMP r0, #3
+    BEQ Green   ;If hreen branch to green
+    B LEDOff     ;None of the other colors were right, so it must be OFF
+
+
+
+    ;Set r2 to appropriate value for color
+Red:
+    ORR r2, r2, #0x2        ;set Pin 1
+    BIC r2, r2, #0xC     ;clears Pin 2 and 3
+    B IllDone
+
+Blue:
+    ORR r2, r2, #0x4        ;set Pin 2
+    BIC r2, r2, #0xA     ;clears Pin 1 and 3
+    B IllDone
+
+Green:
+    ORR r2, r2, #0x8    ;set Pin 3
+    BIC r2, r2, #0x6     ;clears Pin 1 and 2
+    B IllDone
+
+LEDOff:
+    BIC r2, r2, #0xE        ;set Pin 1 and 2 and 3
+    B IllDone
+
+IllDone:
+    STR r2, [r1, #0x3FC]    ;Puts the data BACK with Appropriate color
+
+
+	POP {r4-r12,lr}   ; Restore registers from stack
+	MOV pc, lr
 
 
 
