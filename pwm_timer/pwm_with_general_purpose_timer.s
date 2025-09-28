@@ -7,6 +7,7 @@
 	.global blinkAlternateFlag
 	.global rgbCode
 	.global rgbCodeGetMenu
+	.global pwmCycles
 
 
 mainMenu:        	.string "What would you like to test?", 0xA, 0xD
@@ -22,6 +23,9 @@ blinkAlternateFlag:	.word 0x0
 rgbCode:			.word 0x0
 rgbCodeGetMenu:		.string "Please Input RGB Code in format 0xRRGGBB:", 0xA, 0xD
 					.string "0x",0
+pwmCycles:			.word 0x1		;The number interrupt we're on (ex. First interrupt is 1, Second is 2, etc)
+									;(1-255, after that gets reset back to 1)
+									;For Advanced Function ONLY
 
 
 
@@ -58,6 +62,7 @@ ptr_lightState:				.word lightState
 ptr_blinkAlternateFlag:		.word blinkAlternateFlag
 ptr_rgbCode:				.word rgbCode
 ptr_rgbCodeGetMenu:			.word rgbCodeGetMenu
+ptr_pwmCycles:				.word pwmCycles
 
 
 
@@ -186,7 +191,7 @@ Timer_Handler:
 	BEQ blinkyTimerHandler		;if 1 blink lights
 	CMP r0, #2
 	BEQ advancedTimerHandler	;if 2 do advanced processing
-	B endTimerHandler
+	B endTimerHandler			; if 4 (or anything else, which shouldnt happen) do nothing
 
 
 noneTimerHandler:
@@ -216,7 +221,65 @@ blinkyTimerHandler: ;Testing Blinky
 
 
 
-advancedTimerHandler:
+advancedTimerHandler: ;Testing Advanced
+	;Get RGB Code (r0-data)
+	LDR r0, ptr_rgbCode
+	LDR r0, [r0]
+
+	;Separate 3 different Values For RGB (r1-RED; r2-GREEN; r3-BLUE)
+	;0x00RRGGBB
+
+	;Get Red Counter
+	AND r1, r0, #0x00FF0000	;mask bits
+	LSR r1, r1, #16 		;Logical Shift Right
+	;Get Green Counter
+	AND r2, r0, #0x0000FF00	;mask bits
+	LSR r2, r2, #8			;Logical Shift Right
+	;Get Blue Counter
+	AND r3, r0, #0x000000FF
+
+	;Get pwmCounter (r4-address, r5-data)
+	LDR r4, ptr_pwmCycles
+	LDR r5, [r4]
+
+	;Init Accumulator for which lights should be on (r6)
+	MOV r6, #0
+
+	;Construct Which Lights should be on (r6) (r0 used as trash, previously had RGB code which we dont need anymore)
+
+	;Red on?
+	CMP r5, r1				;Compare overall counter (r5) to red (r1)
+	IT LE					;Red is ON iff it's overall counter (r5) is less than or equal to the red counter (r1)
+	ADDLE r6,r6, #0x001 	;Put Red into Acc (r6)
+	;Green on?
+	CMP r5, r2				;Compare  overall counter (r5) to green (r2)
+	IT LE					;Green is ON iff overall counter (r5) is less than or equal to the green counter (r2)
+	ADDLE r6,r6, #0x010 	;Put Green into Acc (r6)
+	;Blue on?
+	CMP r5, r3				;Compare overall counter (r5) to blue (r3)
+	IT LE					;Red is ON iff overall counter (r5) is less than or equal to the blue counter (r3)
+	ADDLE r6,r6, #0x100 	;Put Blue into Acc (r6)
+
+	;Put Acc (r6) into (r0) as argument
+	MOV r0, r6
+	;Turn on Appropriate Lights
+	bl modified_illuminate_RGB_LED
+
+	;increment pwm cycle counter flag (r4-address, r5-data)
+	;flag indicates which number cycle we're on RIGHT NOW!
+	;ie) if it's the last cycle, flag should be 255, so go back to start and make it 1 again
+	CMP r5, #255
+	ITE EQ
+	MovEQ r5, #1		;if flag is 255, make it 1
+	ADDNE r5, r5, #1	;if flag not 255, increment by 1
+
+	;Store prm cycle counter back (r4-address, r5-data)
+	str r5, [r4]
+
+
+
+
+
 endTimerHandler:
 
 	POP {r4-r12,lr}
@@ -298,6 +361,10 @@ uart2State: ;We're In the Middle of Testing Advanced
 	LDR r1, ptr_rgbCode
 	MOV r2, #0
 	STR r2, [r1]
+	;Reset pwmCycles (r1- address, r2-data)
+	LDR r1, ptr_pwmCycles
+	MOV r2, #1
+	STR r2, [r1]
 
 	B EndUartHandler
 
@@ -318,7 +385,7 @@ state4enter:	;We're done processing RGB Code input, time to test Advanced
 
 
 state4notenter:		;Process Current Keypush as part of RGB Code
-fuck
+
 	;Temp Put User-entered Char into r4 to save it (so doesnt get overwritten with output_character)
 	MOV r4, r0
 	;Print User-Entered Char (for feedback)
