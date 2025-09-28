@@ -30,14 +30,17 @@ timer_interrupt_init:
 				;How many clicks should we go before we interrupt?
 				;16 MHz clock (16 million clock cycles/second)
 	CMP r0, #0
-	ITTEE EQ
+	ITTE EQ
     MOVEQ r4, #0x1200
     MOVTEQ r4, #0x007A	;Blinky Speed (8 million clicks) (Once Every Half Second, 2 Times Per Second)
-	MOVNE r4, #0x7100
-    MOVTNE r4, #0x0002	;Advanced Speed (160,000 clicks) (100 Times Per Second)
+	;MOVNE r4, #0x7100
+    ;MOVTNE r4, #0x0002	;Advanced Speed (160,000 clicks) (100 Times Per Second)
+
+	MOVNE r4, #0xF519  	;New Advanced Speed (62,745 clicks) (255 Times Per Second) (NOTE! Its not 100% because 16mil/255 isnt clean)
+
     ;want advanced to go off MORE so lessen the variable
     ;HUMANS need AT LEAST 60 interrupts per second (for advanced) (not just 2)
-    ;We can make it 100 interrupts which makes it easy for the percentage I think
+
 
 
 
@@ -471,10 +474,12 @@ modified_illuminate_RGB_LED:
     ;r2- regsiter data bucket
     ;r3 - trash
 
-    ;Red    1    (pin 1)
-    ;Blue   2    (pin 2)
-    ;Green  3    (pin 3)
-    ;OFF 0 (ALL PINS OFF)
+	;OFF r0==0x000
+	;RED r0==0x001
+	;GREEN r0==0x010
+	;BLUE r0==0x100
+	;(Any combos of the following also acceptable)
+
 
 
 
@@ -484,30 +489,65 @@ modified_illuminate_RGB_LED:
     LDR r2, [r1, #0x3FC]    ;Puts the data from reg into r2
 
     ;Figure out what color the light is supposed to be
-    CMP r0, #1
+    CMP r0, #0x001
     BEQ Red     ;If red branch to red
-    CMP r0, #2
-    BEQ Blue    ;If blue branch to blue
-    CMP r0, #3
-    BEQ Green   ;If hreen branch to green
+    CMP r0, #0x010
+    BEQ Green    ;If Green branch to Green
+    CMP r0, #0x100
+    BEQ Blue   ;If Blue branch to Blue
+    CMP r0, #0x011
+    BEQ RedGreen
+    MOV r3, #0x101		;only doing this to fix illegal constant error
+    CMP r0, r3
+    BEQ RedBlue
+    CMP r0, #0x110
+    BEQ GreenBlue
+    MOV r3, #0x111		;only doing this to fix illegal constant error
+	CMP r0, r3
+    BEQ RedGreenBlue
     B LEDOff     ;None of the other colors were right, so it must be OFF
 
 
 
     ;Set r2 to appropriate value for color
 Red:
+    BIC r2, r2, #0xE     	;clears all pins (1-3)
     ORR r2, r2, #0x2        ;set Pin 1
-    BIC r2, r2, #0xC     ;clears Pin 2 and 3
     B IllDone
 
 Blue:
+	BIC r2, r2, #0xE     	;clears all pins (1-3)
     ORR r2, r2, #0x4        ;set Pin 2
-    BIC r2, r2, #0xA     ;clears Pin 1 and 3
     B IllDone
 
 Green:
-    ORR r2, r2, #0x8    ;set Pin 3
-    BIC r2, r2, #0x6     ;clears Pin 1 and 2
+	BIC r2, r2, #0xE     	;clears all pins (1-3)
+    ORR r2, r2, #0x8    	;set Pin 3
+    B IllDone
+
+RedGreen:
+	BIC r2, r2, #0xE     	;clears all pins (1-3)
+    ORR r2, r2, #0x2        ;set Pin 1
+    ORR r2, r2, #0x8    	;set Pin 3
+    B IllDone
+
+RedBlue:
+	BIC r2, r2, #0xE     	;clears all pins (1-3)
+    ORR r2, r2, #0x2        ;set Pin 1
+    ORR r2, r2, #0x4        ;set Pin 2
+    B IllDone
+
+GreenBlue:
+	BIC r2, r2, #0xE     	;clears all pins (1-3)
+    ORR r2, r2, #0x8    	;set Pin 3
+    ORR r2, r2, #0x4        ;set Pin 2
+    B IllDone
+
+RedGreenBlue:
+	BIC r2, r2, #0xE     	;clears all pins (1-3)
+    ORR r2, r2, #0x8    	;set Pin 3
+    ORR r2, r2, #0x4        ;set Pin 2
+    ORR r2, r2, #0x2        ;set Pin 1
     B IllDone
 
 LEDOff:
