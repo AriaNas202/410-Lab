@@ -33,13 +33,11 @@ timer_interrupt_init:
 	ITTE EQ
     MOVEQ r4, #0x1200
     MOVTEQ r4, #0x007A	;Blinky Speed (8 million clicks) (Once Every Half Second, 2 Times Per Second)
-	;MOVNE r4, #0x7100
-    ;MOVTNE r4, #0x0002	;Advanced Speed (160,000 clicks) (100 Times Per Second)
 
-	MOVNE r4, #0xF519  	;New Advanced Speed (62,745 clicks) (255 Times Per Second) (NOTE! Its not 100% because 16mil/255 isnt clean)
 
-    ;want advanced to go off MORE so lessen the variable
-    ;HUMANS need AT LEAST 60 interrupts per second (for advanced) (not just 2)
+	MOVNE r4, #0x0500  	;New Advanced Speed (I just made it super fast because it was so slow with the color changing)
+						;want advanced to go off MORE so lessen the variable
+    					;HUMANS need AT LEAST 60 interrupts per second (for advanced) (not just 2)
 
 
 
