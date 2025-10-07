@@ -569,7 +569,7 @@ Advanced_RGB_LED:
 	MOVT r0, #0x4002
 	ADD r0, r0, #0x0D0		;get effective address (generator 2)
 
-	MOV r1, #0xFE			;Set Load Val to 255-1
+	MOV r1, #0xFF			;Set Load Val to 255
 
 	STR r1, [r0]			;Update Register
 
@@ -582,7 +582,7 @@ Advanced_RGB_LED:
 	MOVT r0, #0x4002
 	ADD r0, r0, #0x110		;get effective address (generator 3)
 
-	MOV r1, #0xFE			;Set Load Val to 255-1
+	MOV r1, #0xFF			;Set Load Val to 255
 
 	STR r1, [r0]			;Update Register
 
@@ -608,7 +608,7 @@ Advanced_RGB_LED:
 	MOV r2, #0xFF0000
 	AND r1,r1,r2			;mask Red bits of code
 	LSR r1,r1, #16			;Shift Red 16 bits right
-	SUB r1,r1, #1			;Set Comp Value to Desired Value-1
+	;SUB r1,r1, #1			;Set Comp Value to Desired Value-1
 
 	STR r1, [r0]
 
@@ -629,7 +629,7 @@ Advanced_RGB_LED:
 	ldr r1, [r1]
 	MOV r2, #0xFF
 	AND r1,r1,r2			;mask Blue bits of code
-	SUB r1,r1, #1			;Set Comp Value to Desired Value-1
+	;SUB r1,r1, #1			;Set Comp Value to Desired Value-1
 
 	STR r1, [r0]
 
@@ -649,7 +649,7 @@ Advanced_RGB_LED:
 	MOV r2, #0xFF00
 	AND r1,r1,r2			;mask Green bits of code
 	LSR r1,r1, #8			;Shift Green 8 bits right
-	SUB r1,r1, #1			;Set Comp Value to Desired Value-1
+	;SUB r1,r1, #1			;Set Comp Value to Desired Value-1
 
 	STR r1, [r0]
 
