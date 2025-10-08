@@ -43,7 +43,6 @@ rgbCodeGetMenu:		.string "Please Input RGB Code in format 0xRRGGBB:", 0xA, 0xD
 	.global Advanced_RGB_LED
 	.global blinky
 	.global ascii2rgb
-	.global reset_RGB
 	.global timer_interrupt_init ;Library
 	.global gpio_init ;Library
 	.global uart_init ;Library
@@ -249,8 +248,7 @@ uart1State: ;We're In the Middle Of Testing Blinky
 	;Change flag to #0 (go back to main Menu)
 	MOV r2, #0
 	str r2, [r1]
-	;Clear the RB Light
-	BL reset_RGB
+
 
 	B EndUartHandler
 
@@ -264,8 +262,7 @@ uart2State: ;We're In the Middle of Testing Advanced
 	LDR r1, ptr_rgbCode
 	MOV r2, #0
 	STR r2, [r1]
-	;Clear the RB Light
-	BL reset_RGB
+
 
 	B EndUartHandler
 
@@ -718,15 +715,7 @@ Advanced_RGB_LED:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-reset_RGB:
-	PUSH  {r4-r12, lr}
 
-
-
-
-
-	POP  {r4-r12, lr}
-	MOV pc, lr
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
