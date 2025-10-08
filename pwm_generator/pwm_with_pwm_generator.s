@@ -508,13 +508,13 @@ Advanced_RGB_LED:
 	MOVT r0, #0x4002
 	ADD r0, #0x0E4			;Get effective address (Gen 2, B)
 
-		;11-00-00-00-10-00
+		;11-00-00-00-00-10
 		;B Comparator going down -> Drive B High
-		;==LOAD -> Drive B Low
+		;==ZERO -> Drive B Low
 	LDR r1, [r0]			;get current configurations
 	MOV r2, #0xFFF
 	BIC r1,r1,r2			;clear current configurations
-	MOV r2, #0xC08
+	MOV r2, #0xC02
 	ORR r1,r1,r2			;set current configure compare values
 	STR r1, [r0]			;Update Register
 
@@ -526,13 +526,13 @@ Advanced_RGB_LED:
 	MOVT r0, #0x4002
 	ADD r0, r0, #0x120		;Get effective address  (Gen 3, A)
 
-		;00-00-11-00-10-00
+		;00-00-11-00-00-10
 		;A Comp Down -> Drive A High
-		;==LOAD -> Drive A Low
+		;==ZERO -> Drive A Low
 	LDR r1, [r0]			;get current configurations
 	MOV r2, #0xFFF
 	BIC r1,r1,r2			;clear current configurations
-	MOV r2, #0x0C8
+	MOV r2, #0x0C2
 	ORR r1,r1,r2			;set current configure compare values
 	STR r1, [r0]			;Update Register
 
@@ -544,13 +544,13 @@ Advanced_RGB_LED:
 	MOVT r0, #0x4002
 	ADD r0, r0, #0x124		;Get effective address (Gen 3, B)
 
-		;11-00-00-00-10-00
+		;11-00-00-00-00-10
 		;B Comparator going down -> Drive B High
 		;==LOAD -> Drive B Low
 	LDR r1, [r0]			;get current configurations
 	MOV r2, #0xFFF
 	BIC r1,r1,r2			;clear current configurations
-	MOV r2, #0xC08
+	MOV r2, #0xC02
 	ORR r1,r1,r2			;set current configure compare values
 	STR r1, [r0]			;Update Register
 
@@ -558,7 +558,7 @@ Advanced_RGB_LED:
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	;!?
 	;Set Load Value
-	;Should be the same for every color (SET TO 255 FOR NOW!!!!!!)
+	;Should be the same for every color (SET TO 256 FOR NOW!!!!!!)
 	;(r0-address; r1-data;r2-trash)
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -569,7 +569,7 @@ Advanced_RGB_LED:
 	MOVT r0, #0x4002
 	ADD r0, r0, #0x0D0		;get effective address (generator 2)
 
-	MOV r1, #0xFF			;Set Load Val to 255
+	MOV r1, #0x100			;Set Load Val to 256
 
 	STR r1, [r0]			;Update Register
 
@@ -582,7 +582,7 @@ Advanced_RGB_LED:
 	MOVT r0, #0x4002
 	ADD r0, r0, #0x110		;get effective address (generator 3)
 
-	MOV r1, #0xFF			;Set Load Val to 255
+	MOV r1, #0x100			;Set Load Val to 256
 
 	STR r1, [r0]			;Update Register
 
@@ -720,6 +720,8 @@ Advanced_RGB_LED:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 reset_RGB:
 	PUSH  {r4-r12, lr}
+
+
 
 
 
