@@ -2,6 +2,7 @@
 
 	.global mainMenu
 	.global rgbCode
+	.global lightByte
 
 
 
@@ -13,6 +14,7 @@ mainMenu:        	.string "What would you like to test?", 0xA, 0xD
 
 rgbCode:			.word 0x0
 
+lightByte:			.byte 0x0	;init to 0
 
 
 
@@ -30,6 +32,8 @@ rgbCode:			.word 0x0
 	.text
 
 	.global dmaStart
+	.global Timer_Handler
+	.global dma_init
 	.global illuminate_LEDs ;Library
 	.global alice_LED_gpio_init	;Library
 	.global timer_interrupt_init ;Library
@@ -47,6 +51,10 @@ rgbCode:			.word 0x0
 
 ptr_mainMenu:				.word mainMenu
 ptr_rgbCode:				.word rgbCode
+ptr_lightByte:				.word lightByte
+dma_control:
+	.space 1024
+	.align 1024
 
 
 
@@ -71,6 +79,9 @@ dmaStart:
 
 	;Init
 	bl alice_LED_gpio_init
+	bl timer_interrupt_init
+	bl dma_init
+
 
 
 
@@ -95,6 +106,140 @@ infinLoop:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+Timer_Handler:
+
+	PUSH {r4-r12,lr} ; Spill registers to stack
+
+
+	;Clear interrupt
+	MOV r0, #0x0000
+	MOVT r0, #0x4003
+	LDRB r1, [r0, #0x24]
+	ORR r1, r1, #0x1
+	STRB r1, [r0, #0x24]
+
+
+
+
+	POP {r4-r12,lr}
+	BX lr       	; Retu
+
+
+
+
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+dma_init:
+	PUSH {r4-r12,lr} ; Spill registers to stack
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	;Turn on DMA clock
+	;RCGCDMA (pg 342) (400FE60C)
+	;(r0-addres, r1-data)
+	;Must turn this on to access module registers, otherwise bus fault
+	MOV r0, #0xE000
+	MOVT r0, #0x400F
+	ADD r0, r0, #0x60C		;Get effective address
+
+	LDR r1, [r0]
+	ORR r1, r1, #0x1		;turn clock on
+
+	STR r1, [r0]			;Update register
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+	;Enable DMA Controller
+	;DMACFG (pg 618) (400FF004)
+	;(r0-addres, r1-data)
+	mov r0, #0xF000
+	movt r0, #0x400F
+	add r0, r0, #0x4	;Get effective address
+
+	LDR r1, [r0]
+	ORR r1, r1, #0x1		;turn dma controller on
+
+
+	STR r1, [r0]			;Update register
+
+
+	;LDR r1, [r0] ;put this here to test, for some reason it keeps reading 0x0 dispite setting the register as 0x1
+
+
+
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+	;Set Base Address of Pointer
+
+
+
+
+
+
+
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	;SET UP DMA CHANNEL CONTROL STRUCTURE
+	;(r0-addres, r1-data)
+
+	;Set Up Source Address
+	;DMASRCENDP (pg 609) (
+
+
+
+
+
+	POP {r4-r12,lr}
+	BX lr       	; Retu
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
