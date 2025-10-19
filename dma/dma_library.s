@@ -4,8 +4,10 @@
 
 
  .text
+ 	.global illuminate_LEDs
+ 	.global alice_LED_gpio_init
  	.global timer_interrupt_init
- 	.global gpio_init
+ 	.global rgb_gpio_init
 	.global uart_init
     .global uart_interrupt_init
 	.global output_string
@@ -14,7 +16,75 @@
     .global modified_int2string
     .global modified_illuminate_RGB_LED
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+illuminate_LEDs:
 
+
+    PUSH {r4-r12,lr} ; Spill registers to stack
+
+
+    ;r0 bit pattern
+
+    ;r1 - address of port B
+    ;r2- data reg
+
+
+
+    MOV r1, #0x5000
+    MOVT r1, #0x4000    ;Move base address for Port B in r1
+
+    ;Get Register which controls the light
+    LDRb r2, [r1, #0x3FC]    ;Puts the data from reg into r2
+
+
+
+	MOV r7, #0xF
+	BIC r2, r2, r7
+
+    ORR r2,r2,r0    ;store bits into data reg
+
+    ;store the updated data reg BACK
+    STRb r2, [r1, #0x3FC]    ;Puts the data BACK with Appropriate Lights
+
+
+
+    POP {r4-r12,lr}   ; Restore registers from stack
+    MOV pc, lr
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+alice_LED_gpio_init:
+	PUSH {r4-r12, lr}
+
+    ;INIT for LEDs ALICE (Port B)
+
+    ;SETUP Enable Clock (Port B, 1st bit)
+    MOV r1, #0xE608
+    MOVT r1, #0x4000
+    ADD r1, #0xF0000		;Get effective address of clock
+    LDR r2, [r1]        	;Get current clock info (r2)
+    ORR r2, r2, #0x02   	;Ors the clock value with mask to set 1st bit to 1
+    STR r2, [r1]        	;store new clock with Port B enabled
+
+    ;Port B, Pins 0,1,2,3 ;!!!!!!
+    ;Enable Direction for Pins (offset 0x400)
+    MOV r1, #0x5000
+    MOVT r1, #0x4000    	;Move base address for Port B in r1
+    LDR r2, [r1, #0x400]    ;load pin direction register into r2
+    ORR r2,r2, #0xF         ;sets 0,1,2,3 to 1 (output)
+    STR r2, [r1, #0x400]    ;stores the masked value back in directional register
+
+    ;Set as Digital
+    LDR r2, [r1, #0x51C]    ;Loads Digital Mode Register into r2
+    ORR r2, r2, #0x0F      	;sets 1st  Bit with Mask to 1 (Enables Digital Mode)
+    STR r2, [r1, #0x51C]    ;stores masked register back
+
+
+
+
+
+	POP {r4-r12, lr}
+	MOV pc, lr
 
 
 
@@ -131,7 +201,7 @@ timer_interrupt_init:
 	MOV pc, lr
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-gpio_init:
+rgb_gpio_init:
 	PUSH {r4-r12,lr} ; Spill registers to stack
 
 	;Init for Tiva RGB LED (Port F)
