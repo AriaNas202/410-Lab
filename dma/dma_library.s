@@ -92,28 +92,6 @@ alice_LED_gpio_init:
 timer_interrupt_init:
 	PUSH {r4-r12, lr}
 
-
-	;Argument Put in r0
-	;0==Blinky Speed
-	;1==Advanced Speed
-	;Variable Speed Stored in r4
-				;How many clicks should we go before we interrupt?
-				;16 MHz clock (16 million clock cycles/second)
-	CMP r0, #0
-	ITTE EQ
-    MOVEQ r4, #0x1200
-    MOVTEQ r4, #0x007A	;Blinky Speed (8 million clicks) (Once Every Half Second, 2 Times Per Second)
-
-
-	MOVNE r4, #0x0500  	;New Advanced Speed (I just made it super fast because it was so slow with the color changing)
-						;want advanced to go off MORE so lessen the variable
-    					;HUMANS need AT LEAST 60 interrupts per second (for advanced) (not just 2)
-
-
-
-
-
-
     ;Connect Clock to timer
     MOV r0, #0xE000
     MOVT r0, #0x400F
@@ -152,7 +130,9 @@ timer_interrupt_init:
 
     STR r1, [r0, #0x4]
 
-    ;Set up interval period (MAKING THIS A VARIABLE AMOUNT!)
+    ;Set up interval period (ONCE PER SECOND!!!)
+
+
     MOV r0, #0x0000
     MOVT r0, #0x4003
 
@@ -160,12 +140,11 @@ timer_interrupt_init:
 
 			;How many clicks should we go before we interrupt?
 			; 16 MHz clock (16 million clock cycles/second)
-			;Init to set off once every half second (8 million)
-    ;MOV r1, #0x1200
-    ;MOVT r1, #0x007A
-    ;I MADE THIS A VARIABLE TIME!!!!!!!
+			;Init to set off once every half second (16 million)
+    MOV r1, #0x2400
+    MOVT r1, #0xF4
 
-	STR r4, [r0, #0x028]
+	STR r1, [r0, #0x028]
 
     ;Enable timer to interrupt processor
 	MOV r0, #0x0000
