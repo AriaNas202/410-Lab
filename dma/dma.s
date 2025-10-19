@@ -30,8 +30,10 @@ rgbCode:			.word 0x0
 	.text
 
 	.global dmaStart
+	.global illuminate_LEDs ;Library
+	.global alice_LED_gpio_init	;Library
 	.global timer_interrupt_init ;Library
-	.global gpio_init ;Library
+	.global rgb_gpio_init ;Library
 	.global uart_init ;Library
 	.global uart_interrupt_init ;Library
 	.global output_string ;Library
@@ -68,9 +70,13 @@ dmaStart:
 	PUSH {r4-r12, lr}	; Store register lr on stack
 
 	;Init
-	;BL uart_init				;Print Menu and Test Functions
-	;bl uart_interrupt_init		;config to uart interrupt to get inputs
-	;BL gpio_init				;configs GPIO so we can use light
+	bl alice_LED_gpio_init
+
+
+
+
+infinLoop:
+	b infinLoop
 
 
 	POP {r4-r12, lr}
