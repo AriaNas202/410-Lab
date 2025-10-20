@@ -3,6 +3,7 @@
 	.global mainMenu
 	.global rgbCode
 	.global lightByte
+	.global dma_control
 
 
 
@@ -15,7 +16,9 @@ mainMenu:        	.string "What would you like to test?", 0xA, 0xD
 rgbCode:			.word 0x0
 
 lightByte:			.byte 0x0	;init to 0
-
+dma_control:
+	.space 1024
+	.align 1024
 
 
 
@@ -52,9 +55,8 @@ lightByte:			.byte 0x0	;init to 0
 ptr_mainMenu:				.word mainMenu
 ptr_rgbCode:				.word rgbCode
 ptr_lightByte:				.word lightByte
-dma_control:
-	.space 1024
-	.align 1024
+ptr_dma_control:			.word dma_control
+
 
 
 
@@ -157,26 +159,7 @@ dma_init:
 	ORR r1, r1, #0x1		;turn clock on
 
 	STR r1, [r0]			;Update register
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
+
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 	;Enable DMA Controller
@@ -201,6 +184,7 @@ dma_init:
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 	;Set Base Address of Pointer
+	;DMACTLBASE (pg 619)
 
 
 
