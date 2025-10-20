@@ -8,6 +8,7 @@
 
 
 
+
 mainMenu:        	.string "What would you like to test?", 0xA, 0xD
 					.string "1-Blinky", 0xA, 0xD
 					.string "2-Advanced",0xA, 0xD
@@ -15,10 +16,10 @@ mainMenu:        	.string "What would you like to test?", 0xA, 0xD
 
 rgbCode:			.word 0x0
 
-lightByte:			.byte 0x0	;init to 0
+lightByte:			.byte 0x00	;init to 0
 dma_control:
 	.align 1024
-	.space 1024					;I swapped this because it seemed like it wasn't aligning before allocating space (i think we're good now)
+	.space 1024
 
 
 
@@ -57,6 +58,7 @@ ptr_mainMenu:				.word mainMenu
 ptr_rgbCode:				.word rgbCode
 ptr_lightByte:				.word lightByte
 ptr_dma_control:			.word dma_control
+
 
 
 
@@ -161,9 +163,11 @@ dma_init:
 
 	STR r1, [r0]			;Update register
 
+
+
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-	;X	Enable DMA Controller
+	;!~	Enable DMA Controller
 	;DMACFG (pg 618) (400FF004)
 	;(r0-addres, r1-data)
 	;DOESNT WORK CURRENTLY!!!!
@@ -174,8 +178,9 @@ dma_init:
 	movt r0, #0x400F
 	add r0, r0, #0x4	;Get effective address
 
-	LDR r1, [r0]
-	ORR r1, r1, #0x1		;turn dma controller on
+	;LDR r1, [r0]
+	;ORR r1, r1, #0x1		;turn dma controller on
+	mov r1, #0x1
 
 
 	STR r1, [r0]			;Update register
@@ -207,8 +212,47 @@ dma_init:
 
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	;Set Up Source Address
-	;DMASRCENDP (pg 609) (
+	;!?	Set Up Source Address (STARTING)
+	;DMASRCENDP (pg 609) (For Channel 18:	20000520) (0x0 offset)
+	;"If the source address is not incrementing, then this field points at the source location itself (such as a peripheral data register)."
+
+	MOV r0, #0x0520
+	MOVT r0, #0x2000		;get effective address
+
+	ldr r1, ptr_lightByte	;get lightByte (light color code)
+
+	str r1, [r0]			;update register
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	;!?	Set Up Desination Address (ENDING)
+	;DMADSTENDP (pg 610) (For Channel 18:	20000524) (0x4 offset)
+
+	MOV r0, #0x0520
+	MOVT r0, #0x2000
+	add r0, r0, #0x4		;get effective address
+
+	mov r1, #0x503C
+	movt r1, #0x4000		;get LEDs data reg on Port B (ony reading 4 bits so bit mask reflects that) (4000503C)
+
+	str r1, [r0]			;Update register
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	;!?		Set Up Channel Control Word
+	;DMACHCTL (pg 611) (For Channel 18:	20000528) (0x8 offset)
+
+	MOV r0, #0x0520
+	MOVT r0, #0x2000
+	add r0, r0, #0x8		;get effective address
+
+	MOV r1, #0xCC000000		;put channel control configs into r1 (Note to Self: see my google doc notes for full breakdown)
+
+	str r1, [r0]			;Update register
+
+
+
+
+
+
 
 
 
@@ -216,7 +260,7 @@ dma_init:
 
 
 	POP {r4-r12,lr}
-	BX lr       	; Retu
+	BX lr       	; Return
 
 
 
