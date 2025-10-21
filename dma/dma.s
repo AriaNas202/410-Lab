@@ -16,7 +16,7 @@ mainMenu:        	.string "What would you like to test?", 0xA, 0xD
 
 rgbCode:			.word 0x0
 
-lightByte:			.byte 0x0A	;init to 0 (values range from 0x0-0xF)
+lightByte:			.byte 0x01	;init to 0 (values range from 0x0-0xF)
 dma_control:
 	.align 1024
 	.space 1024
@@ -116,16 +116,109 @@ Timer_Handler:
 
 	PUSH {r4-r12,lr}
 
+	;Must prep for a regular periodical interrupt AND dma interrupt
 
-	;Clear interrupt
+
+
+	;Check Which interrupt
+	;DMACHIS (pg 635) (400FF504)
+	;(r0-addres, r1-data)
+	MOV r0, #0xF000
+	MOVT r0, #0x400F
+	add r0, r0, #0x504		;get effective address
+
+	LDR r1, [r0]			;get data in DMA Channel Interrupt Reg (THIS CAUSES A FAULT!!!)
+
+	CMP r1, #0x40000
+	BEQ dmaInterr
+	B periodInterr			;if DMA Interrupt Reg indicates DMA trigger, Branch to DMA; Otherwise Period
+
+
+
+
+periodInterr:
+
+	;Clear Period interrupt
 	MOV r0, #0x0000
 	MOVT r0, #0x4003
 	LDRB r1, [r0, #0x24]
 	ORR r1, r1, #0x1
 	STRB r1, [r0, #0x24]
 
+	;Increment lightByte (or back to zero if 0xF)
+
+	;Get lightByte data
+	;(r0-addres, r1-data)
+	LDR r0, ptr_lightByte
+	LDRB r1, [r0]
+
+	;What do we need to do to lightByte?
+	CMP r1, #0xF
+	BEQ resetLightByte
+	B incLightByte			;if lightByte is 0xF (max), reset to 0; otherwise increase
+
+resetLightByte:
+	;reset lightByte to 0x0
+	MOV r1, #0x0
+	;store back
+	STRB r1, [r0]
+	;branch to end
+	B endTimerHandler
+
+incLightByte:
+	;increase lightByte
+	add r1, r1, #1
+	;store back
+	STRB r1, [r0]
 
 
+	;branch to end
+	B endTimerHandler
+
+
+
+
+
+
+dmaInterr:
+
+	;!Clear DMA interrupt
+	MOV r0, #0xF000
+	MOVT r0, #0x400F
+	LDR r1, [r0, #0x504]	;get effective address
+	ORR r1, r1, #0x40000	;set 18th bit to clear interrupt
+	STR r1, [r0, #0x504]	;store back
+
+
+	; Enable Channel in in DMA Enable Set Register
+	;DMAENASET (pg 627) (400FF028)
+	MOV r0, #0xF000
+	MOVT r0, #0x400F
+	add r0, r0, #0x028		;get effective address
+
+	MOV r1, #0x40000		;set 18th bit to enable
+
+	str r1, [r0]			;update register
+
+
+	;!Reset the Control Word
+	;Docs for Control: "Controler updates transfer size [0] and transfer mode [stop] fields...it must be reconfigured before each new transfer"
+	;DMACHCTL (pg 611) (For Channel 18:	20000528) (0x8 offset)
+	MOV r0, #0x0520
+	MOVT r0, #0x2000
+	add r0, r0, #0x8		;get effective address
+
+	MOV r1, #0xCC000000
+	add r1,r1,#1			;Reset All Channel Configs (including setting up basic mode again)
+
+	str r1, [r0]			;Update register
+
+	;End
+
+
+
+
+endTimerHandler:
 
 	POP {r4-r12,lr}
 	BX lr       	; Retu
