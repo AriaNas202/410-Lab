@@ -16,7 +16,7 @@ mainMenu:        	.string "What would you like to test?", 0xA, 0xD
 
 rgbCode:			.word 0x0
 
-lightByte:			.byte 0x00	;init to 0
+lightByte:			.byte 0x0A	;init to 0 (values range from 0x0-0xF)
 dma_control:
 	.align 1024
 	.space 1024
@@ -83,14 +83,14 @@ dmaStart:
 	PUSH {r4-r12, lr}	; Store register lr on stack
 
 	;Init
-	bl alice_LED_gpio_init
-	bl timer_interrupt_init
-	bl dma_init
+	bl alice_LED_gpio_init			;init alice board lights to be able to be set
+	bl timer_interrupt_init			;init timer to interrupt every second
+	bl dma_init						;init the dma transfer
 
 
 
 
-
+		;enter an infinite loop to test dma (pausing in here, the dma should still work)
 infinLoop:
 	b infinLoop
 
@@ -114,7 +114,7 @@ infinLoop:
 
 Timer_Handler:
 
-	PUSH {r4-r12,lr} ; Spill registers to stack
+	PUSH {r4-r12,lr}
 
 
 	;Clear interrupt
@@ -249,11 +249,79 @@ dma_init:
 	str r1, [r0]			;Update register
 
 
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	;Determine Request Type
+	;I GUESS we're only doing burst requests cause the table says Single has No events which trigger it using general timers
+	;I do not think it matters right now? I do not care which we use when we're only transfering 1 byte (IM GOING TO SKIP THIS FOR NOW)
+	;I could use the DMAUSEBURSTSET/ DMAUSEBURSTCLR to disable single requests but I DO NOT really care to do that? I dont know ? Maybe I should cause like then the burst requests will trigger the interrupt?
+	;Also do i set the useBurst bit on the control channel word?
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	;Setup DMA Trigger
+	;Im pretty sure channel 18 is default set to Timer 0A, so Im gonna skip this too
+
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	;!~ Clear DMA Channel Primary Alternate Clear Register (For Basic & Auto Transfer Modes )
+	;DMAALTCLR (pg 630) (400FF034)
+	;(r0-addres, r1-data)
+	MOV r0, #0xF000
+	MOVT r0, #0x400F
+	add r0, r0, #0x034		;get effective address
+
+	MOV r1, #0x40000		;clear 18th bit, 18th channel is not alt select
+
+	str r1, [r0]			;update register
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	;Set Priority
+	;He said it wasn't necesary sincle there's only 1 transfer, so Im skipping for now
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	;!?~ Allow DMA Requests
+	;DMAREQMASKCLR (pg 626) (400FF024)
+	;(r0-addres, r1-data)
+
+	MOV r0, #0xF000
+	MOVT r0, #0x400F
+	add r0, r0, #0x024		;get effective address
+
+	MOV r1, #0x40000		;clear 18th bit, 18th channel is not alt select
+
+	str r1, [r0]			;update register
 
 
 
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	;Start Transfer
+	;(r0-addres, r1-data)
 
 
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	;!? Enable Transfer Mode in DMA Control Register
+	;Setting to basic transfer mode
+	;DMACHCTL (pg 611) (For Channel 18:	20000528) (0x8 offset)
+
+	MOV r0, #0x0520
+	MOVT r0, #0x2000
+	add r0, r0, #0x8		;get effective address
+
+	ldr r1, [r0] 			;read stuff already in reg so we dont override
+	ADD r1, r1, #0x1		;set basic transfer mode (0x1)
+
+	str r1, [r0]			;Update register
+
+
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	;! Enable Channel in in DMA Enable Set Register
+	;DMAENASET (pg 627) (400FF028)
+	MOV r0, #0xF000
+	MOVT r0, #0x400F
+	add r0, r0, #0x028		;get effective address
+
+	MOV r1, #0x40000		;set 18th bit to enable
+
+	str r1, [r0]
 
 
 
