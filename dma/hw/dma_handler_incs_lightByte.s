@@ -4,7 +4,7 @@
 	.global rgbCode
 	.global lightByte
 	.global dma_control
-	.global dma_interrupt_counter
+
 
 
 
@@ -23,7 +23,7 @@ dma_control:
 	.space 1024
 
 
-dma_intrrupt_counter:		.word 0x0
+
 
 
 
@@ -60,7 +60,7 @@ ptr_mainMenu:				.word mainMenu
 ptr_rgbCode:				.word rgbCode
 ptr_lightByte:				.word lightByte
 ptr_dma_control:			.word dma_control
-ptr_dma_intrrupt_counter:	.word dma_intrrupt_counter
+
 
 
 
@@ -221,29 +221,8 @@ dmaInterr:
 	STR r1, [r0, #0x504]	;store back
 
 
-	;See if we need to increment lightByte (im temp doing this in here to see if it works)
-	;Every 500 interrupts, we increment
-	;(r0-counter address, r1-count)
-	LDR r0, ptr_dma_intrrupt_counter
-	LDR r1, [r0]
-	CMP r1, #3
-	BEQ yesInc
-	B doneInc
-
-yesInc:
-	;set counter to 0
-	LDR r0, ptr_dma_intrrupt_counter
-	MOV r1, #0
-	STR r1, [r0]
-	;inc lightByte
+	;Inc LightByte (interrupt shoots every second, so every time we must interrupt it (THIS IS NEW!!!)
 	bl increment_lightByte
-	B doneInc
-doneInc:
-	;inc counter by 1
-	LDR r0, ptr_dma_intrrupt_counter
-	LDR r1, [r0]
-	add r1, r1, #1
-	STR r1, [r0]
 
 
 
