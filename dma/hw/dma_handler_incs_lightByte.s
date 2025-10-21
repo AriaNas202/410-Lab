@@ -134,7 +134,7 @@ resetLightByte:
 	;store back
 	STRB r1, [r0]
 	;branch to end
-	B endTimerHandler
+	B endIncLightByte
 
 incLightByte:
 	;increase lightByte
@@ -144,9 +144,9 @@ incLightByte:
 
 
 	;branch to end
-	B endTimerHandler
+	B endIncLightByte
 
-
+endIncLightByte:
 
 	POP {r4-r12,lr}
 	MOV pc, lr
