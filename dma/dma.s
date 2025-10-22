@@ -9,6 +9,7 @@
 
 
 
+
 mainMenu:        	.string "What would you like to test?", 0xA, 0xD
 					.string "1-Blinky", 0xA, 0xD
 					.string "2-Advanced",0xA, 0xD
@@ -39,6 +40,7 @@ dma_control:
 	.global dmaStart
 	.global Timer_Handler
 	.global dma_init
+	.global increment_lightByte
 	.global illuminate_LEDs ;Library
 	.global alice_LED_gpio_init	;Library
 	.global timer_interrupt_init ;Library
@@ -58,6 +60,7 @@ ptr_mainMenu:				.word mainMenu
 ptr_rgbCode:				.word rgbCode
 ptr_lightByte:				.word lightByte
 ptr_dma_control:			.word dma_control
+
 
 
 
@@ -111,6 +114,59 @@ infinLoop:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+increment_lightByte:
+	PUSH {r4-r12,lr}
+	;Increment lightByte (or back to zero if 0xF)
+
+	;Get lightByte data
+	;(r0-addres, r1-data)
+	LDR r0, ptr_lightByte
+	LDRB r1, [r0]
+
+	;What do we need to do to lightByte?
+	CMP r1, #0xF
+	BEQ resetLightByte
+	B incLightByte			;if lightByte is 0xF (max), reset to 0; otherwise increase
+
+resetLightByte:
+	;reset lightByte to 0x0
+	MOV r1, #0x0
+	;store back
+	STRB r1, [r0]
+	;branch to end
+	B endIncLightByte
+
+incLightByte:
+	;increase lightByte
+	add r1, r1, #1
+	;store back
+	STRB r1, [r0]
+
+
+	;branch to end
+	B endIncLightByte
+
+endIncLightByte:
+
+	POP {r4-r12,lr}
+	MOV pc, lr
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
 
 Timer_Handler:
 
@@ -145,35 +201,10 @@ periodInterr:
 	ORR r1, r1, #0x1
 	STRB r1, [r0, #0x24]
 
-	;Increment lightByte (or back to zero if 0xF)
-
-	;Get lightByte data
-	;(r0-addres, r1-data)
-	LDR r0, ptr_lightByte
-	LDRB r1, [r0]
-
-	;What do we need to do to lightByte?
-	CMP r1, #0xF
-	BEQ resetLightByte
-	B incLightByte			;if lightByte is 0xF (max), reset to 0; otherwise increase
-
-resetLightByte:
-	;reset lightByte to 0x0
-	MOV r1, #0x0
-	;store back
-	STRB r1, [r0]
-	;branch to end
-	B endTimerHandler
-
-incLightByte:
-	;increase lightByte
-	add r1, r1, #1
-	;store back
-	STRB r1, [r0]
+	;increment lightByte (temp getting rid of this, the other handler does the incrementing from now on)
+	;bl increment_lightByte
 
 
-	;branch to end
-	B endTimerHandler
 
 
 
@@ -188,6 +219,11 @@ dmaInterr:
 	LDR r1, [r0, #0x504]	;get effective address
 	ORR r1, r1, #0x40000	;set 18th bit to clear interrupt
 	STR r1, [r0, #0x504]	;store back
+
+
+	;Inc LightByte (interrupt shoots every second, so every time we must interrupt it (THIS IS NEW!!!)
+	bl increment_lightByte
+
 
 
 	; Enable Channel in in DMA Enable Set Register
@@ -344,14 +380,21 @@ dma_init:
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	;Determine Request Type
-	;I GUESS we're only doing burst requests cause the table says Single has No events which trigger it using general timers
-	;I do not think it matters right now? I do not care which we use when we're only transfering 1 byte (IM GOING TO SKIP THIS FOR NOW)
-	;I could use the DMAUSEBURSTSET/ DMAUSEBURSTCLR to disable single requests but I DO NOT really care to do that? I dont know ? Maybe I should cause like then the burst requests will trigger the interrupt?
-	;Also do i set the useBurst bit on the control channel word?
+	;Single or Burst (not disabling single)
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	;Setup DMA Trigger
-	;Im pretty sure channel 18 is default set to Timer 0A, so Im gonna skip this too
+	;DMAALTCLR (pg 630) (400FF034)
+	;(r0-addres, r1-data)
+	mov r0, #0xF000
+	MOVt r0, #0x400F
+	add r0, r0, #0x518	;get effective address
+
+	MOV r1, #0x0		;set channel 18 as 0
+
+	STR r1, [r0]		;update register
+
+
 
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -421,7 +464,7 @@ dma_init:
 
 
 	POP {r4-r12,lr}
-	BX lr       	; Return
+    MOV pc, lr       	; Return
 
 
 
