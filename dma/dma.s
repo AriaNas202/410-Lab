@@ -381,10 +381,21 @@ dma_init:
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	;Determine Request Type
 	;Single or Burst (not disabling single)
+	;DMAUSEBURSTCLR (pg 624) (400FF000)
+	;(r0-addres, r1-data)
+	mov r0, #0xF000
+	MOVt r0, #0x400F
+	add r0, r0, #0x01C	;get effective address
+
+	MOV r1, #0x4000		;set channel 18 as clear
+
+	STR r1, [r0]		;update register
+
+
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	;Setup DMA Trigger
-	;DMAALTCLR (pg 630) (400FF034)
+	;DMACHMAP2 (pg 638) (400FF518)
 	;(r0-addres, r1-data)
 	mov r0, #0xF000
 	MOVt r0, #0x400F
@@ -411,7 +422,7 @@ dma_init:
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	;Set Priority
-	;He said it wasn't necesary sincle there's only 1 transfer, so Im skipping for now
+	;Not necesary sincle there's only 1 transfer
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	;!?~ Allow DMA Requests
