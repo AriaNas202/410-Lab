@@ -39,7 +39,7 @@ dma_control:
 	.space 1024
 
 
-lightByte1:			.byte 0x01
+lightByte1:			.byte 0x01	;we make the beginning 1 instead of 0 because at the start all the lgihts are off anyway, so we start at 1 not 0
 lightByte2:			.byte 0x02
 lightByte3:			.byte 0x03
 lightByte4:			.byte 0x04
@@ -134,20 +134,7 @@ infinLoop:
 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-increment_lightByte:
-	PUSH {r4-r12,lr}
 
-
-	POP {r4-r12,lr}
-	MOV pc, lr
 
 
 
@@ -165,7 +152,7 @@ increment_lightByte:
 
 
 
-
+;this is ONLY gonna be entered when we reach the end of basic transfer mode,
 Timer_Handler:
 
 	PUSH {r4-r12,lr}
@@ -219,42 +206,41 @@ dmaInterr:
 	STR r1, [r0, #0x504]	;store back
 
 
-	;set new source register
+
+	;Reset source register
 	;DMASRCENDP (pg 609) (For Channel 18:	20000520) (0x0 offset)
-	;FUCK
+	;MOV r0, #0x0520
+	;MOVT r0, #0x2000		;get effective address
 
-	MOV r0, #0x0520
-	MOVT r0, #0x2000		;get effective address
+	;ldr r1, ptr_lightByte1	;reset source back to beginning of lights
 
-	ldr r1, [r0]			;get current source address
-	add r1, r1, #1			;increment source by 1
-
-	str r1, [r0]			;update register
+	;str r1, [r0]			;update register
 
 
 
 	; Enable Channel in in DMA Enable Set Register
 	;DMAENASET (pg 627) (400FF028)
-	MOV r0, #0xF000
-	MOVT r0, #0x400F
-	add r0, r0, #0x028		;get effective address
+	;MOV r0, #0xF000
+	;MOVT r0, #0x400F
+	;add r0, r0, #0x028		;get effective address
 
-	MOV r1, #0x40000		;set 18th bit to enable
+	;MOV r1, #0x40000		;set 18th bit to enable
 
-	str r1, [r0]			;update register
+	;str r1, [r0]			;update register
 
 
 	;!Reset the Control Word
 	;Docs for Control: "Controler updates transfer size [0] and transfer mode [stop] fields...it must be reconfigured before each new transfer"
 	;DMACHCTL (pg 611) (For Channel 18:	20000528) (0x8 offset)
-	MOV r0, #0x0520
-	MOVT r0, #0x2000
-	add r0, r0, #0x8		;get effective address
+	;MOV r0, #0x0520
+	;MOVT r0, #0x2000
+	;add r0, r0, #0x8		;get effective address
 
-	MOV r1, #0xCC000000
-	add r1,r1,#1			;Reset All Channel Configs (including setting up basic mode again)
+	;MOV r1, #0x00F0
+	;movt r1, #0xC000
+	;add r1,r1,#1			;Reset All Channel Configs (including setting up basic mode again)
 
-	str r1, [r0]			;Update register
+	;str r1, [r0]			;Update register
 
 	;End
 
@@ -380,7 +366,8 @@ dma_init:
 	MOVT r0, #0x2000
 	add r0, r0, #0x8		;get effective address
 
-	MOV r1, #0xCC000000		;put channel control configs into r1 (Note to Self: see my google doc notes for full breakdown)
+	MOV r1, #0x00F0		;HUMOR ME actually
+	movt r1, #0xC000	;put channel control configs into r1 (Note to Self: see my google doc notes for full breakdown)
 
 	str r1, [r0]			;Update register
 
@@ -392,6 +379,15 @@ dma_init:
 	;I could use the DMAUSEBURSTSET/ DMAUSEBURSTCLR to disable single requests but I DO NOT really care to do that? I dont know ? Maybe I should cause like then the burst requests will trigger the interrupt?
 	;Also do i set the useBurst bit on the control channel word?
 
+	;actually trying to make it a burst reques
+	;MOV r0, #0xF000
+	;movt r0, #0x400F
+	;add r0, r0, #0x018
+
+	;ldr r1, [r0]
+	;ORR r1, #0x40000
+
+	;str r1, [r0]
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	;Setup DMA Trigger
 	;Im pretty sure channel 18 is default set to Timer 0A, so Im gonna skip this too
