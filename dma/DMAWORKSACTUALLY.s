@@ -108,9 +108,7 @@ ptr_lightByte0:				.word lightByte0
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;This is the second function to be called by MAIN
-;actually does the little game or whatever
-;this should ultimately be the overall "Game" printer which controls replay
+
 dmaStart:
 	PUSH {r4-r12, lr}	; Store register lr on stack
 
@@ -158,52 +156,6 @@ infinLoop:
 Timer_Handler:
 
 	PUSH {r4-r12,lr}
-
-
-	;!Clear DMA interrupt
-	;MOV r0, #0xF000
-	;MOVT r0, #0x400F
-	;LDR r1, [r0, #0x504]	;get effective address
-	;ORR r1, r1, #0x40000	;set 18th bit to clear interrupt
-	;STR r1, [r0, #0x504]	;store back
-
-
-
-	;Reset source register
-	;DMASRCENDP (pg 609) (For Channel 18:	20000520) (0x0 offset)
-	;MOV r0, #0x0520
-	;MOVT r0, #0x2000		;get effective address
-
-	;ldr r1, ptr_lightByte0	;get lightByte (light color code)
-
-	;str r1, [r0]			;update register
-
-	;!~ Clear DMA Channel Primary Alternate Clear Register (For Basic & Auto Transfer Modes )
-	;DMAALTCLR (pg 630) (400FF034)
-	;(r0-addres, r1-data)
-	;MOV r0, #0xF000
-	;MOVT r0, #0x400F
-	;add r0, r0, #0x034		;get effective address
-
-	;MOV r1, #0x40000		;clear 18th bit, 18th channel is not alt select
-
-	;str r1, [r0]			;update register
-
-	;!?~ Allow DMA Requests
-	;DMAREQMASKCLR (pg 626) (400FF024)
-	;(r0-addres, r1-data)
-
-	;MOV r0, #0xF000
-	;MOVT r0, #0x400F
-	;add r0, r0, #0x024		;get effective address
-
-	;MOV r1, #0x40000		;clear 18th bit, 18th channel is not alt select
-
-	;str r1, [r0]			;update register
-
-
-
-
 
 	;!Reset the Control Word
 	;Docs for Control: "Controler updates transfer size [0] and transfer mode [stop] fields...it must be reconfigured before each new transfer"
@@ -358,20 +310,8 @@ dma_init:
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	;Determine Request Type
-	;I GUESS we're only doing burst requests cause the table says Single has No events which trigger it using general timers
-	;I do not think it matters right now? I do not care which we use when we're only transfering 1 byte (IM GOING TO SKIP THIS FOR NOW)
-	;I could use the DMAUSEBURSTSET/ DMAUSEBURSTCLR to disable single requests but I DO NOT really care to do that? I dont know ? Maybe I should cause like then the burst requests will trigger the interrupt?
-	;Also do i set the useBurst bit on the control channel word?
-
-	;actually trying to make it a burst reques
-	;MOV r0, #0xF000
-	;movt r0, #0x400F
-	;add r0, r0, #0x018
-
-	;ldr r1, [r0]
-	;ORR r1, #0x40000
-
-	;str r1, [r0]
+	;We're not disabling Single Requests, I do not think it matters
+	
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	;Setup DMA Trigger
 	;DMACHMAP2 (pg 638) (400FF518)
@@ -398,7 +338,7 @@ dma_init:
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	;Set Priority
-	;He said it wasn't necesary sincle there's only 1 transfer, so Im skipping for now
+	;Only 1 channel active, uncessesary
 
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	;!?~ Allow DMA Requests
