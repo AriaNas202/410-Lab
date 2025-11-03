@@ -112,6 +112,98 @@ spiInit:
 
 	str r1, [r0]			;update register
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;!	Enable clock to Appropriate GPIO Module
+	;RCGCGPIO (pg 340) (400FE608)
+	;(r0-address; r1-data)
+	;Port B
+	;Port C
+	MOV r0, #0xE000
+	movt r0, #0x400F
+	add r0, r0, #0x608		;get effective address
+
+	MOV r1, #0x6			;turn on Port B/C clock
+
+	str r1, [r0]			;update register
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;! Configure Pins to be in Alt Function Mode
+	;GPIOAFSEL (pg 671) (Port B APB: 40005420)
+	;(r0-address; r1-data)
+	;Port B4/B7
+	;NOTE: CURRENTLY NOT SETTING PORT C (because that's a latch for alice board, not spi)
+	mov r0, #0x5000
+	movt r0, #0x4000
+	add r0, r0, #0x420		;get effective address
+
+	MOV r1, #0x90 			;set pins 4 and 7 to be in alt function mode
+
+	str r1, [r0]			;update register
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;!	Tell GPIO Which alt Function to use
+	;GPIOPCTL (pg 688) (Port B APB 4000552C)
+	;(r0-address; r1-data)
+	;Port B4/B7
+	;NOTE: CURRENTLY NOT SETTING PORT C (because that's a latch for alice board, not spi)
+	mov r0, #0x5000
+	movt r0, #0x4000
+	add r0, r0, #0x52C		;get effective address
+
+	MOV r1, #0x0000
+	movt r1, #0x2002		;write Pins 4 and 7 to be the value (2)
+
+	str r1, [r0]			;update register
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;Set Pins as Digital
+
+	;Set Pins as Output
+
+
+
+	;Set Pins as Digital
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	POP {r4-r12, lr}
 	MOV pc, lr
