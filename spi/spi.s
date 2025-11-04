@@ -101,16 +101,7 @@ infinLoop:
 spiInit:
 	PUSH {r4-r12, lr}	; Store register lr on stack
 
-	;!	Enable SSI Module
-	;RCGCSSI (pg 346) (400FE61C)
-	;(r0-address; r1-data)
-	mov r0, #0xE000
-	movt r0, #0x400F
-	add r0, r0, #0x61C		;get effective address
 
-	MOV r1, #0x4			;enable ssi module 2 (notes say so)
-
-	str r1, [r0]			;update register
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;!	Enable clock to Appropriate GPIO Module
@@ -156,31 +147,95 @@ spiInit:
 	str r1, [r0]			;update register
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	;Set Pins as Digital
+	;!	Set Pins as Digital
+	;GPIODEN (pg 682)
+	;(r0-address; r1-data)
 
+	;!	Port B, Pins 4/7 (4000551C)
+	MOV r0, #0x5000
+	movt r0, #0x4000
+	add r0, r0, #0x51C		;get effective address
+
+	MOV r1, #0x90			;set pins 4/7
+
+	str r1, [r0]			;update register
+
+	;Port C, Pin 7 (4000651C)
+	;For some reason this regiser seems to be init t 0xF which turns into 0x8f, idk if that's an issue (i dont think so)
+	MOV r0, #0x6000
+	movt r0, #0x4000
+	add r0, r0, #0x51C		;get effective address
+
+	MOV r1, #0x80			;set pins 7
+
+	str r1, [r0]			;update register
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;Set Pins as Output
+	;GPIODIR  (pg 663)
+	;(r0-address; r1-data)
 
 
+	;!	Port B, Pins 4/7 (40005400)
+	MOV r0, #0x5000
+	movt r0, #0x4000
+	add r0, r0, #0x400		;get effective address
 
-	;Set Pins as Digital
+	MOV r1, #0x90			;set pins 4/7 as output
+
+	str r1, [r0]			;update register
+
+	;!	Port C, Pins 7 (40006400)
+	MOV r0, #0x6000
+	movt r0, #0x4000
+	add r0, r0, #0x400		;get effective address
+
+	MOV r1, #0x80			;set pin 7 as output
+
+	str r1, [r0]			;update register
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;Configure SSI Module
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;!	Turn On SSI Module
+	;RCGCSSI (pg 346) (400FE61C)
+	;(r0-address; r1-data)
+	mov r0, #0xE000
+	movt r0, #0x400F
+	add r0, r0, #0x61C		;get effective address
 
+	MOV r1, #0x4			;enable ssi module 2 (notes say so)
 
+	str r1, [r0]			;update register
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;!	Disable SSI2 to be able to config it (is off by default I think, but doing it anyways)
+	;SSICR1 (pg 971) (Using SSI2: 4000A004)
+	;(r0-address; r1-data)
+	MOV r0, #0xA000
+	movt r0, #0x4000
+	add r0, r0, #0x4	;get effective address
 
+	ldr r1, [r0]		;get current data
+	BIC r1, #0x2		;write 0 to bit to disable
 
+	str r1, [r0]		;update register
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;Set SSI as Leader (pretty sure it's that by default but just making sure)
+	;SSICR1 (pg 971) (Using SSI2: 4000A004)
+	;(r0-address; r1-data)
+	MOV r0, #0xA000
+	movt r0, #0x4000
+	add r0, r0, #0x4	;get effective address
 
+	ldr r1, [r0]		;get current data
+	BIC r1, #0x4		;write 0 to bit to select leader mode
 
-
-
-
-
-
-
+	str r1, [r0]		;update register
 
 
 
