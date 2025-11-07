@@ -19,7 +19,7 @@ rgbCode:			.word 0x0
 
 seven_seg_int:		.string "1234", 0		;will init to 0000, but rn it's 1234 to test
 
-displayFlag:		.word 0x4				;eventually this will be init to 0, but for now will be 1 (testing)
+displayFlag:		.word 0x1				;eventually this will be init to 0, but for now will be 1 (testing)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -588,7 +588,16 @@ displayFlag4:
 
 incrementDisplayFlag:
 	;Increment the display flag
+		;(r1-address; r0-flag data)
+	ldr r1, ptr_displayFlag
+	ldr r0, [r1]
+								;get current flag
+	CMP r0, #4
+	ITE EQ
+	MOVEQ r0, #1				;if the flag is 4, put it back to 1
+	ADDNE r0, r0, #1			;otherwise increase by 1
 
+	STR r0, [r1]				;store flag back
 
 
 
