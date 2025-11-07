@@ -17,9 +17,9 @@ mainMenu:        	.string "What would you like to test?", 0xA, 0xD
 
 rgbCode:			.word 0x0
 
-seven_seg_int:		.string "1234", 0		;will init to 0000, but rn it's 1234 to test
+seven_seg_int:		.string "0000", 0
 
-displayFlag:		.word 0x1				;eventually this will be init to 0, but for now will be 1 (testing)
+displayFlag:		.word 0x1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -54,7 +54,7 @@ displayFlag:		.word 0x1				;eventually this will be init to 0, but for now will 
 
 ptr_mainMenu:				.word mainMenu
 ptr_rgbCode:				.word rgbCode
-ptr_seven_seg_int:				.word seven_seg_int
+ptr_seven_seg_int:			.word seven_seg_int
 ptr_displayFlag:			.word displayFlag
 
 
@@ -86,6 +86,10 @@ spiStart:
 
 	;Init the SPI Modue
 	bl spiInit
+
+	;call the SPI_7_SEG to change the number in memory
+	MOV r0, #0xAAC											;NOTE TO TESTER!!!!!!!!!!!!!!!!!!!!!!!!! CHANGE THIS VALUE IN ORDER TO CHANGE THE 7-SEG DISPLAY!!! (make it a 4 digit int in hex)
+	bl SPI_7_SEG
 
 	;Init the Timer Interrupt
 	bl timer_interrupt_init
@@ -492,8 +496,7 @@ Timer_Handler:
 	ldr r0, ptr_displayFlag
 	ldr r1, [r0]
 
-	CMP r1, #0
-	BEQ endTimerHandler		;if timer flag 0, then we display NOTHING
+
 	CMP r1, #1
 	BEQ displayFlag1
 	CMP r1, #2
@@ -602,8 +605,8 @@ incrementDisplayFlag:
 
 
 
-endTimerHandler:
 
+endTimerHandler:
 
 
 	POP {r4-r12,lr}
