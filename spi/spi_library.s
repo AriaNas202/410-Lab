@@ -130,9 +130,7 @@ timer_interrupt_init:
 
     STR r1, [r0, #0x4]
 
-    ;Set up interval period (ONCE PER SECOND!!!)
-
-
+    ;Set up interval period
     MOV r0, #0x0000
     MOVT r0, #0x4003
 
@@ -140,9 +138,11 @@ timer_interrupt_init:
 
 			;How many clicks should we go before we interrupt?
 			; 16 MHz clock (16 million clock cycles/second)
-			;Init to set off once every half second (16 million)
-    MOV r1, #0x2400
-    MOVT r1, #0xF4
+			;FOR NOW!!!!!! Im going to do every half second to test (will be MUCH faster for the real thing)
+    ;MOV r1, #0x1200
+    ;MOVT r1, #0x7A
+    mov r1, #0xF00		;making this just a REALLY fast value to see what works (either 0xF00 to 0xFFF is good)
+
 
 	STR r1, [r0, #0x028]
 
