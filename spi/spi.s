@@ -19,7 +19,7 @@ rgbCode:			.word 0x0
 
 seven_seg_int:		.string "1234", 0		;will init to 0000, but rn it's 1234 to test
 
-displayFlag:		.word 0x1				;eventually this will be init to 0, but for now will be 1 (testing)
+displayFlag:		.word 0x4				;eventually this will be init to 0, but for now will be 1 (testing)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -527,9 +527,63 @@ displayFlag1:
 
 
 displayFlag2:
-displayFlag3:
-displayFlag4:
+	;Get First Number in the sequence
+		;(r1-address; r0-char data)
+	ldr r1, ptr_seven_seg_int		;r0-get address
+	LDRB r0, [r1,#1]					;r1-get first char (number)
 
+
+	;Feed said number into the code-getter function
+	bl lightCodeGraber		;returns the code in r1
+
+	;call the spi function with the codes as an argument
+		;(r2-7-seg code; r3-display screen code)
+	MOV r2, r1		;put code in r1 (returned from function) into r2 as new argument
+	MOV r3, #0x4	;put display screen code in r3 as new argument
+	bl updateSSE
+
+	;The Light Should Be changed Now
+	B incrementDisplayFlag
+
+
+
+displayFlag3:
+	;Get First Number in the sequence
+		;(r1-address; r0-char data)
+	ldr r1, ptr_seven_seg_int		;r0-get address
+	LDRB r0, [r1,#2]					;r1-get first char (number)
+
+
+	;Feed said number into the code-getter function
+	bl lightCodeGraber		;returns the code in r1
+
+	;call the spi function with the codes as an argument
+		;(r2-7-seg code; r3-display screen code)
+	MOV r2, r1		;put code in r1 (returned from function) into r2 as new argument
+	MOV r3, #0x2	;put display screen code in r3 as new argument
+	bl updateSSE
+
+	;The Light Should Be changed Now
+	B incrementDisplayFlag
+
+displayFlag4:
+	;Get First Number in the sequence
+		;(r1-address; r0-char data)
+	ldr r1, ptr_seven_seg_int		;r0-get address
+	LDRB r0, [r1,#3]					;r1-get first char (number)
+
+
+	;Feed said number into the code-getter function
+	bl lightCodeGraber		;returns the code in r1
+
+	;call the spi function with the codes as an argument
+		;(r2-7-seg code; r3-display screen code)
+	MOV r2, r1		;put code in r1 (returned from function) into r2 as new argument
+	MOV r3, #0x1	;put display screen code in r3 as new argument
+	bl updateSSE
+
+	;The Light Should Be changed Now
+	B incrementDisplayFlag
 
 
 incrementDisplayFlag:
