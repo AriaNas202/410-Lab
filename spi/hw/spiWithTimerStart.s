@@ -2,7 +2,7 @@
 
 	.global mainMenu
 	.global rgbCode
-	.global 7_seg_int
+	.global seven_seg_int
 
 
 
@@ -17,9 +17,9 @@ mainMenu:        	.string "What would you like to test?", 0xA, 0xD
 
 rgbCode:			.word 0x0
 
-7_seg_int:			.string "0000", 0
+seven_seg_int:		.string "1234", 0		;will init to 0000, but rn it's 1234 to test
 
-displayFlag:		.word 0x0
+displayFlag:		.word 0x1				;eventually this will be init to 0, but for now will be 1 (testing)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -33,9 +33,10 @@ displayFlag:		.word 0x0
 
 	.global spiStart
 	.global spiInit
-	.global testSSE
-	.global SPI_7_SEG
+	.global updateSSE
 	.global Timer_Handler
+	.global SPI_7_SEG
+	.global lightCodeGraber
 	.global illuminate_LEDs ;Library
 	.global alice_LED_gpio_init	;Library
 	.global timer_interrupt_init ;Library
@@ -53,7 +54,7 @@ displayFlag:		.word 0x0
 
 ptr_mainMenu:				.word mainMenu
 ptr_rgbCode:				.word rgbCode
-ptr_7_seg_int:				.word 7_seg_int 
+ptr_seven_seg_int:				.word seven_seg_int
 ptr_displayFlag:			.word displayFlag
 
 
@@ -86,7 +87,11 @@ spiStart:
 	;Init the SPI Modue
 	bl spiInit
 
-	bl testSSE
+	;Init the Timer Interrupt
+	bl timer_interrupt_init
+
+
+
 
 
 
@@ -376,8 +381,11 @@ spiInit:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;The purpose of this it to make something appear on one of the ssi 7-segments
-testSSE:
+updateSSE:
 	PUSH {r4-r12, lr}	; Store register lr on stack
+
+	;r2--7-seg code which we're going to store in Port C's Data Register
+	;r3--The light display screen code which we're also storing in Port C's Data Register
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;Unlatch Shift Reg
@@ -414,9 +422,9 @@ PrevTransPoll:
 	MOVT r0, #0x4000
 	add r0, r0, #0x008		;get effective address
 
-	;FOR NOW,,,,, INSTEAD OF GETTING USER INPUT VALUE
-	;			  JUST GOING TO HARDCODE A RANDOM VALUE
-	Mov r1, #0xA402		;displayes 2 on screen 3
+	;Create the code which we're going to store in the data register
+	LSL r2, r2, #8		;left shift the 7-seg code by 8 bits
+	ORR r1, r2, r3		;combine the 7-seg code with the display screen code to create the final data code
 
 
 	STR r1, [r0]			;update register
@@ -479,13 +487,13 @@ Timer_Handler:
 	ORR r1, r1, #0x1
 	STRB r1, [r0, #0x24]
 
-	;Read Flag to determine behavior 
+	;Read Flag to determine behavior
 	;(r0-address, r1-data)
-	ldr r0 ptr_displayFlag
+	ldr r0, ptr_displayFlag
 	ldr r1, [r0]
 
-	CMP r1, #0	
-	BEQ endTimerHandler		;if timer flag 0, then we display NOTHING 
+	CMP r1, #0
+	BEQ endTimerHandler		;if timer flag 0, then we display NOTHING
 	CMP r1, #1
 	BEQ displayFlag1
 	CMP r1, #2
@@ -500,23 +508,87 @@ Timer_Handler:
 
 displayFlag1:
 	;Get First Number in the sequence
-	
+		;(r1-address; r0-char data)
+	ldr r1, ptr_seven_seg_int		;r0-get address
+	LDRB r0, [r1]					;r1-get first char (number)
 
-	;Feed said number into the code-getter function 
-	;call the spi function with the code as an argument 
-	;Increment the flag (if 4, set back to )
+
+	;Feed said number into the code-getter function
+	bl lightCodeGraber		;returns the code in r1
+
+	;call the spi function with the codes as an argument
+		;(r2-7-seg code; r3-display screen code)
+	MOV r2, r1		;put code in r1 (returned from function) into r2 as new argument
+	MOV r3, #0x8	;put display screen code in r3 as new argument
+	bl updateSSE
+
+	;The Light Should Be changed Now
 	B incrementDisplayFlag
 
 
 displayFlag2:
-displayFlag3:
-displayFlag4:
+	;Get First Number in the sequence
+		;(r1-address; r0-char data)
+	ldr r1, ptr_seven_seg_int		;r0-get address
+	LDRB r0, [r1,#1]					;r1-get first char (number)
 
+
+	;Feed said number into the code-getter function
+	bl lightCodeGraber		;returns the code in r1
+
+	;call the spi function with the codes as an argument
+		;(r2-7-seg code; r3-display screen code)
+	MOV r2, r1		;put code in r1 (returned from function) into r2 as new argument
+	MOV r3, #0x4	;put display screen code in r3 as new argument
+	bl updateSSE
+
+	;The Light Should Be changed Now
+	B incrementDisplayFlag
+
+
+
+displayFlag3:
+	;Get First Number in the sequence
+		;(r1-address; r0-char data)
+	ldr r1, ptr_seven_seg_int		;r0-get address
+	LDRB r0, [r1,#2]					;r1-get first char (number)
+
+
+	;Feed said number into the code-getter function
+	bl lightCodeGraber		;returns the code in r1
+
+	;call the spi function with the codes as an argument
+		;(r2-7-seg code; r3-display screen code)
+	MOV r2, r1		;put code in r1 (returned from function) into r2 as new argument
+	MOV r3, #0x2	;put display screen code in r3 as new argument
+	bl updateSSE
+
+	;The Light Should Be changed Now
+	B incrementDisplayFlag
+
+displayFlag4:
+	;Get First Number in the sequence
+		;(r1-address; r0-char data)
+	ldr r1, ptr_seven_seg_int		;r0-get address
+	LDRB r0, [r1,#3]					;r1-get first char (number)
+
+
+	;Feed said number into the code-getter function
+	bl lightCodeGraber		;returns the code in r1
+
+	;call the spi function with the codes as an argument
+		;(r2-7-seg code; r3-display screen code)
+	MOV r2, r1		;put code in r1 (returned from function) into r2 as new argument
+	MOV r3, #0x1	;put display screen code in r3 as new argument
+	bl updateSSE
+
+	;The Light Should Be changed Now
+	B incrementDisplayFlag
 
 
 incrementDisplayFlag:
-	;Increment the display flag 
-	
+	;Increment the display flag
+
 
 
 
@@ -552,57 +624,73 @@ SPI_7_SEG:
 
 
 
-	;turn int into string 
-		;r0-base address to store string 
-		;r1-int to convert 
+	;turn int into string
+		;r0-base address to store string
+		;r1-int to convert
 	MOV r1, r0					;move number into r1
-	ldr r0, ptr_7_seg_int		;put 7-seg address into r0
+	ldr r0, ptr_seven_seg_int		;put 7-seg address into r0
 	bl modified_int2string		;turns the int into a string in the pointer
 
-	;NOW the timer handler will take over to facilitate the 7-seg lights 
+	;NOW the timer handler will take over to facilitate the 7-seg lights
 
 
 	POP {r4-r12, lr}
 	MOV pc, lr
 
 
-;Converts the Into into 7-Seg code to send 
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+
+
+;Converts the Into into 7-Seg code to send
 lightCodeGraber:
 	PUSH {r4-r12, lr}
 
 	;Arguments
-		;r0- a number 0-9
-	
-	mov r1, #0x0
+		;r0- a number 0-9 (AS A STRING)
 
-	CMP r0, #0
+	mov r1, #0x0		;code returns as 0 if you feed the function an unknown char
+
+	CMP r0, #0x30
 	IT EQ
 	MOVEQ r1, #0xC0
-	CMP r0, #1
+	CMP r0, #0x31
 	IT EQ
 	MOVEQ r1, #0xF9
-	CMP r0, #2
+	CMP r0, #0x32
 	IT EQ
 	MOVEQ r1, #0xA4
-	CMP r0, #3
+	CMP r0, #0x33
 	IT EQ
 	MOVEQ r1, #0xB0
-	CMP r0, #4
+	CMP r0, #0x34
 	IT EQ
 	MOVEQ r1, #0x99
-	CMP r0, #5
+	CMP r0, #0x35
 	IT EQ
 	MOVEQ r1, #0x92
-	CMP r0, #6
+	CMP r0, #0x36
 	IT EQ
 	MOVEQ r1, #0x82
-	CMP r0, #7
+	CMP r0, #0x37
 	IT EQ
 	MOVEQ r1, #0xF8
-	CMP r0, #8
+	CMP r0, #0x38
 	IT EQ
 	MOVEQ r1, #0x80
-	CMP r0, #9
+	CMP r0, #0x39
 	IT EQ
 	MOVEQ r1, #0x90
 
