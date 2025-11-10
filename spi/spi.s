@@ -88,7 +88,7 @@ spiStart:
 	bl spiInit
 
 	;call the SPI_7_SEG to change the number in memory
-	MOV r0, #0xAAC											;NOTE TO TESTER!!!!!!!!!!!!!!!!!!!!!!!!! CHANGE THIS VALUE IN ORDER TO CHANGE THE 7-SEG DISPLAY!!! (make it a 4 digit int in hex)
+	MOV r0, #0x4D2											;NOTE TO TESTER!!!!!!!!!!!!!!!!!!!!!!!!! CHANGE THIS VALUE IN ORDER TO CHANGE THE 7-SEG DISPLAY!!! (make it a 4 digit int in hex)
 	bl SPI_7_SEG
 
 	;Init the Timer Interrupt
