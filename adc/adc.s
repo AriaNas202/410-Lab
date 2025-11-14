@@ -71,6 +71,15 @@ adcStart:
 	PUSH {r4-r12, lr}	; Store register lr on stack
 
 
+	;Initalize the ADC Unit
+	bl ADC_init
+
+
+	;Get the current value, returned in r0
+	bl poll_ADC
+
+
+;Loops infinitely so that we can pause and check r0's value
 infinLoop:
 	b infinLoop
 
@@ -92,7 +101,22 @@ ADC_init:
 	PUSH {r4-r12, lr}	; Store register lr on stack
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;	Enable the ADC Clock
+	;RCGCADC (pg 352) (400FE638)
+	;(r0-address; r1-data)
+	MOV r0, #0xE000
+	MOVT r0, #0x400F
+	add r0, r0, #0x638		;get effective address
 
+	MOV r1, #0x1			;turn on ADC Module 0
+								;Ill be honest, idk why we're turing on the Module0 here,
+								;(Light Net say so), but docs say both mods share the same 12 outputs, so maybe it's arbitrary??
+
+
+	STR r1, [r0]			;update register
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 	POP {r4-r12, lr}
