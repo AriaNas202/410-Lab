@@ -102,7 +102,7 @@ ADC_init:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	;	Enable the ADC Clock
+	;!	Enable the ADC Clock
 	;RCGCADC (pg 352) (400FE638)
 	;(r0-address; r1-data)
 	MOV r0, #0xE000
@@ -115,10 +115,75 @@ ADC_init:
 
 
 	STR r1, [r0]			;update register
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;!	Enable GPIO Clock
+	;RCGCGPIO (pg 340) (400FE608)
+	;(r0-address; r1-data)
+	;Turn on Port E
+	MOV r0, #0xE000
+	MOVT r0, #0x400F
+	add r0, r0, #0x608		;get effective address
+
+	MOV r1, #0x10			;turn on Port E
+
+	str r1, [r0]			;update register
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;!	Turn on Alt Function For Pin
+	;GPIOAFSEL (pg 671) (40024420)
+	;(r0-address; r1-data)
+	MOV r0, #0x4000
+	MOVT r0, #0x4002
+	add r0, r0, #0x420 		;get effective address
+
+	MOV r1, #0x4			;set Pin 2 (E2) to be alt mode
+
+	str r1, [r0]			;update register
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;!	Disable Digital Mode for Pin (Analog mode)
+	;GPIODEN (pg 682) (4002451C)
+	;(r0-address; r1-data)
+	MOV r0, #0x4000
+	MOVT r0, #0x4002
+	add r0, r0, #0x51C		;get effective address
+
+	MOV r1, #0x0			;set pins to be in analog mode (ensures Pin 2 is 0)
+
+	str r1, [r0]			;update register
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;!	Enable analog function of Pin
+	;GPIOAMSEL (pg 687) (40024528)
+	;(r0-address; r1-data)
+	MOV r0, #0x4000
+	MOVT r0, #0x4002
+	add r0, r0, #0x528		;get effective address
+
+	MOV r1, #0x4			;write 1 to E2 to enable Pin 2
+
+	str r1, [r0]			;update register
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+
+
+	;End Init
 	POP {r4-r12, lr}
 	MOV pc, lr
 
@@ -135,6 +200,15 @@ ADC_init:
 ;poll ADC for value, returns value in r0
 poll_ADC:
 	PUSH {r4-r12, lr}	; Store register lr on stack
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;
+	;ADCACTSS (pg 821) (
+
+
+
+
+
 
 
 
