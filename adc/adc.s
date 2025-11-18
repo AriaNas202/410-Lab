@@ -202,10 +202,18 @@ poll_ADC:
 	PUSH {r4-r12, lr}	; Store register lr on stack
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	;
-	;ADCACTSS (pg 821) (
+	;	Disable SS3
+	;ADCACTSS (pg 821) (For ADC Mod 0: 4003.8000)
+	;(r0-address; r1-data)
+	MOV r0, #0x8000
+	MOVT r0, #0x4003	;Get effective address
 
+	LDR r1, [r0]		;Get current data
+	BIC r1, r1, #0x8		;make sure 4th bit is set as 0 (disabled SS3)
 
+	STR r1, [r0]		;Update current reg
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 
