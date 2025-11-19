@@ -179,8 +179,72 @@ ADC_init:
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;	Disable SS3
+	;ADCACTSS (pg 821) (For ADC Mod 0: 4003.8000)
+	;(r0-address; r1-data)
+	MOV r0, #0x8000
+	MOVT r0, #0x4003	;Get effective address
 
+	LDR r1, [r0]		;Get current data
+	BIC r1, r1, #0x8		;make sure 4th bit is set as 0 (disabled SS3)
 
+	STR r1, [r0]		;Update current reg
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;	Enable the trigger event
+	;ADCEMUX (pg 833) (For ADC Mod 0: 4003.9014)
+	;(r0-address; r1-data)
+	MOV r0, #0x9000
+	MOVT r0, #0x4003
+	add r0, r0, #0x014		;get effective address
+
+	MOV r1, #0x0000			;set trigger event of SS3 (Set to processor for now)
+
+	STR r1, [r0]			;update register
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;	Configure the input source 
+	;ADCSSMUX (pg 875) (For ADC Mod 0: 4003.800A0) 
+	;(r0-address; r1-data)	
+	MOV r0, #0x8000
+	MOVT r0, #0x4003
+	add r0, r0, #0x0A0		;get effective address
+	
+	MOV r1, #0x1			;Using input 1 for now 
+	
+	str r1, [r0]			;update register 
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;	Configure Sample Control Bits 
+	;ADCSSCTL3 (pg 876) (For ADC Mod 0: 4003.80A4) 
+	;(r0-address; r1-data)	
+	MOV r0, #0x8000
+	MOVT r0, #0x4003
+	add r0, r0, #0x0A4		;get effective address
+	
+	MOV r1, #0x6			;Ser Sample Control Bits (Note to Self: See my notes for a better breakdown) 
+	
+	str r1, [r0]			;update register 
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 
 
 	;End Init
@@ -201,19 +265,7 @@ ADC_init:
 poll_ADC:
 	PUSH {r4-r12, lr}	; Store register lr on stack
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	;	Disable SS3
-	;ADCACTSS (pg 821) (For ADC Mod 0: 4003.8000)
-	;(r0-address; r1-data)
-	MOV r0, #0x8000
-	MOVT r0, #0x4003	;Get effective address
 
-	LDR r1, [r0]		;Get current data
-	BIC r1, r1, #0x8		;make sure 4th bit is set as 0 (disabled SS3)
-
-	STR r1, [r0]		;Update current reg
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 
