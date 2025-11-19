@@ -75,12 +75,18 @@ adcStart:
 	bl ADC_init
 
 
-	;Get the current value, returned in r0
-	bl poll_ADC
+
 
 
 ;Loops infinitely so that we can pause and check r0's value
 infinLoop:
+
+	;Get the current value, returned in r0
+	bl poll_ADC
+
+	;SET A BREAKPOINT HERE
+	nop
+
 	b infinLoop
 
 
@@ -153,6 +159,7 @@ ADC_init:
 
 	str r1, [r0]			;update register
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;!	Disable Digital Mode for Pin (Analog mode)
 	;GPIODEN (pg 682) (4002451C)
@@ -164,6 +171,7 @@ ADC_init:
 	MOV r1, #0x0			;set pins to be in analog mode (ensures Pin 2 is 0)
 
 	str r1, [r0]			;update register
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;!	Enable analog function of Pin
@@ -178,6 +186,7 @@ ADC_init:
 	str r1, [r0]			;update register
 
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;	Disable SS3
 	;ADCACTSS (pg 821) (For ADC Mod 0: 4003.8000)
@@ -189,63 +198,68 @@ ADC_init:
 	BIC r1, r1, #0x8		;make sure 4th bit is set as 0 (disabled SS3)
 
 	STR r1, [r0]		;Update current reg
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;	Enable the trigger event
-	;ADCEMUX (pg 833) (For ADC Mod 0: 4003.9014)
+	;ADCEMUX (pg 833) (For ADC Mod 0: 4003.8014)
 	;(r0-address; r1-data)
-	MOV r0, #0x9000
+	MOV r0, #0x8000
 	MOVT r0, #0x4003
 	add r0, r0, #0x014		;get effective address
 
 	MOV r1, #0x0000			;set trigger event of SS3 (Set to processor for now)
 
-	STR r1, [r0]			;update register
+	STR r1, [r0]			;update register (IT BREAKS HERE!!!)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	;	Configure the input source 
-	;ADCSSMUX (pg 875) (For ADC Mod 0: 4003.800A0) 
-	;(r0-address; r1-data)	
+	;	Configure the input source
+	;ADCSSMUX (pg 875) (For ADC Mod 0: 4003.800A0)
+	;(r0-address; r1-data)
 	MOV r0, #0x8000
 	MOVT r0, #0x4003
 	add r0, r0, #0x0A0		;get effective address
-	
-	MOV r1, #0x1			;Using input 1 for now 
-	
-	str r1, [r0]			;update register 
-	
+
+	MOV r1, #0x1			;Using input 1 for now
+
+	str r1, [r0]			;update register
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	;	Configure Sample Control Bits 
-	;ADCSSCTL3 (pg 876) (For ADC Mod 0: 4003.80A4) 
-	;(r0-address; r1-data)	
+	;	Configure Sample Control Bits
+	;ADCSSCTL3 (pg 876) (For ADC Mod 0: 4003.80A4)
+	;(r0-address; r1-data)
 	MOV r0, #0x8000
 	MOVT r0, #0x4003
 	add r0, r0, #0x0A4		;get effective address
-	
-	MOV r1, #0x6			;Ser Sample Control Bits (Note to Self: See my notes for a better breakdown) 
-	
-	str r1, [r0]			;update register 
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 
+	MOV r1, #0x6			;Ser Sample Control Bits (Note to Self: See my notes for a better breakdown)
+
+	str r1, [r0]			;update register
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;	Enable SS3
+	;ADCACTSS (pg 821) (For ADC Mod 0: 4003.8000)
+	;(r0-address; r1-data)
+	MOV r0, #0x8000
+	MOVT r0, #0x4003		;Get effective address
+
+	LDR r1, [r0]			;Get current data
+	ORR r1, r1, #0x8		;Set 4th bit (disabled SS3)
+
+	STR r1, [r0]			;Update current reg
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	;End Init
 	POP {r4-r12, lr}
@@ -263,17 +277,73 @@ ADC_init:
 
 ;poll ADC for value, returns value in r0
 poll_ADC:
-	PUSH {r4-r12, lr}	; Store register lr on stack
+	PUSH {r4-r12, lr}		; Store register lr on stack
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;	Trigger the Interrupt (Im doing it manually for now)
+	;ADCPSSI (pg 845) (For ADC Mod 0: 4003.8028)
+	;(r0-address; r1-data)
+	MOV r0, #0x8000
+	MOVT r0, #0x4003
+	add r0, r0, #0x028		;get effective address
+
+	MOV r1, #0x8			;write 1 to 4th bit to begin sampling on SS3
+
+	STR r1, [r0]			;update register
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+pollMe:
+	;	Wait for Conversion on SS3 Raw Interrupt
+	;ADCRIS (pg 823) (For ADC Mod 0: 4003.8004)
+	;(r0-address; r1-data)
+	MOV r0, #0x8000
+	MOVT r0, #0x4003
+	add r0, r0, #0x4		;get effective address
+
+	ldr r1, [r0]			;get data
+	AND r1, r1, #0x8		;mask 4th bit (SS3)
+	CMP r1, #0x0				;if 0, then interrupt hasn't occured
+	BEQ pollMe				;if 0, then branch back to poll again
+
+	;If we made it out of the loop, then the interrupt has occured
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;	Read Data in FIFO3
+	;ADCSSFIFO3 (pg 860) (For ADC Mod 0: 4003.80A8)
+	;(r0-address; r2-data)
+	MOV r0, #0x8000
+	MOVT r0, #0x4003
+	add r0, r0, #0x0A8		;get effective address
+
+	ldr r2, [r0]			;Read the Data (we dont care of overflow cause there's only 1)
+
+	;Data is now in r2
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;	Clear SS3 Interrupt
+	;ADCISC (pg 828) (For ADC Mod 0: 4003.800C)
+	;(r0-address; r1-data)
+	MOV r0, #0x8000
+	MOVT r0, #0x4003
+	add r0, r0, #0xC		;Get effective address
+
+	MOV r1, #0x0			;TEMP VALUE, write 1 to values of interrupts
+
+	STR r1, [r0]			;Update Register
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;	Put data in r0
+	MOV r0, r2 				;Put FIFO3 value into r0 to return
 
 
 
 
 
 
-
-
-
-
+	;End
 	POP {r4-r12, lr}
 	MOV pc, lr
 
