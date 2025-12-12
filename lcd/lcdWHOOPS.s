@@ -540,16 +540,15 @@ spiInit:
 	STR r1, [r0]			;update register
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	;Select the 8-Bit Data Size
+	;Select the 8-Bit Data Size (MAY CHANGE BACK EVENTUALLY)
 	;SSICR0 (pg 969) (Using SSI2: 4000A000)
 	;(r0-address; r1-data)
-	;NOTE: I Changes this FROM 16bit to 8bit (LCD doesnt read more than 8 bits at once)
-		;Evetually I may change it to 6-bit but Im trying 8 for now
+
 
 	MOV r0, #0xA000
 	movt r0, #0x4000	;get effective address
 
-	MOV r1, #0xF		;set SSI Data size to 8-bit
+	MOV r1, #0x7		;set SSI Data size to 8-bit
 
 	STR r1, [r0]		;update register
 
