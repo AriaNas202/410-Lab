@@ -29,20 +29,21 @@ lcdMain:
 	;Start initializing
 
 	;LCD 4-bit mode
-	MOV r0, #33
+	MOV r0, #0x33
 	MOV r1, #0x0
+	bl lcdSend
 
-	MOV r0, #32
+	MOV r0, #0x32
 	MOV r1, #0x0
 	bl lcdSend
 
 	;set 2 lines, all columns and rows
-	MOV r0, #28
+	MOV r0, #0x28
 	MOV r1, #0x0
 	bl lcdSend
 
 	;clear display
-	MOV r0, #01
+	MOV r0, #0x01
 	MOV r1, #0x0
 	bl lcdSend
 
