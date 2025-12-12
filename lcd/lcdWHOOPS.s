@@ -39,7 +39,7 @@ lcdMain:
 	bl lcdSend
 
 	;set 2 lines, all columns and rows
-	MOV r0, #0x28
+	MOV r0, #0x38				;temp changed to 38
 	MOV r1, #0x0
 	bl lcdSend
 
@@ -54,9 +54,9 @@ lcdMain:
 	bl lcdSend
 
 	;increment cursor after char printed
-	;MOV r0, #06
-	;MOV r1, #0x0
-	;bl lcdSend
+	MOV r0, #06
+	MOV r1, #0x0
+	bl lcdSend
 
 	;display on, no blink
 	;MOV r0, #0x0E
@@ -65,8 +65,8 @@ lcdMain:
 
 ;;;;;;;;;;;;;;;;;;;;
 	;Start sending Data to test!!!
-	MOV r0, #0x41
-	MOV r1, #0x1
+	MOV r0, #0x80
+	MOV r1, #0x0
 	bl lcdSend
 
 
