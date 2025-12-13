@@ -82,14 +82,21 @@ lcdMain:
 
 ;;;;;;;;;;;;;;;;;;;;
 	;Start sending Data to test!!! (0X80)
-	MOV r0, #0x8
-	MOV r1, #0x0
-	bl lcdSendNibble
-	MOV r0, #0x0
-	MOV r1, #0x0
+	MOV r0, #0x4
+	MOV r1, #0x1
 	bl lcdSendNibble
 
+	MOV r0, #0x1
+	MOV r1, #0x1
+	bl lcdSendNibble
 
+	MOV r0, #0x4
+	MOV r1, #0x1
+	bl lcdSendNibble
+
+	MOV r0, #0x2
+	MOV r1, #0x1
+	bl lcdSendNibble
 
 
 
