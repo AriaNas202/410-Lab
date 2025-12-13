@@ -7,78 +7,27 @@
 
 
 
-   	.global spiInit
-    .global lcdSendNibble
-    .global lcdMain
-    .global lcdDelay
+   	.global lcdInit		;inits the spi and lcd screen
+    .global lcdSendByte	;Sends a char to the lcd screen (r0-char or lcd command to display)(r1-RS bit, set to 0 for commands, set to 1 for char data)
+    .global lcdMain		;main function so i can test within this file
+    .global lcdDelay	;helper function which polls for a few thousand instructions so we can send the hex properly
 
 lcdMain:
 	PUSH {r4-r12, lr}
 
 	;init spi
-	bl spiInit
-	nop
-	nop
-	nop
-	nop		;im noping here cause im afraid to NOT nop
-
-	;Start initializing
-
-	;LCD 4-bit mode
-	;0x33
-	MOV r0, #0x33
-	MOV r1, #0x0
-	bl lcdSendNibble
+	bl lcdInit
 
 
-	;0X32
-	MOV r0, #0x32
-	MOV r1, #0x0
-	bl lcdSendNibble
-
-
-	;set 2 lines, all columns and rows (0X28)
-	MOV r0, #0x28
-	MOV r1, #0x0
-	bl lcdSendNibble
-
-
-
-	;clear display (0X01)
-	MOV r0, #0x01
-	MOV r1, #0x0
-	bl lcdSendNibble
-
-
-
-	;display on, cursor blinks (0X0f)
-	MOV r0, #0x0f
-	MOV r1, #0x0
-	bl lcdSendNibble
-
-
-
-
-
-	;increment cursor after char printed
-	;MOV r0, #06
-	;MOV r1, #0x0
-	;bl lcdSendNibble
-
-	;display on, no blink
-	;MOV r0, #0x0E
-	;MOV r1, #0x0
-	;bl lcdSendNibble
-
-;;;;;;;;;;;;;;;;;;;;
 	;Start sending Data to test!!! (0X80)
-	MOV r0, #0x41
-	MOV r1, #0x1
-	bl lcdSendNibble
+	MOV r0, #0x42			;put data or command in r0
+	MOV r1, #0x1			;set r1 to 0 for commands, set r1 to 1 for data
+	bl lcdSendByte
+	;send as much as you want...
 
-
-
-
+	MOV r0, #0x49			;put data or command in r0
+	MOV r1, #0x1			;set r1 to 0 for commands, set r1 to 1 for data
+	bl lcdSendByte
 
 infinMe:
 	B infinMe
@@ -134,7 +83,7 @@ delayMoreYay:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-lcdSendNibble:
+lcdSendByte:
 	PUSH {r4-r12, lr}
 
 	;ARGUMENTS
@@ -606,7 +555,8 @@ CurrTransPoll4:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-spiInit:
+;Initializes the SPi and then the LCD screen
+lcdInit:
 	PUSH {r4-r12, lr}	; Store register lr on stack
 
 
@@ -858,6 +808,46 @@ spiInit:
 	nop
 	nop
 	nop
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;Do LCD Initialization
+
+	;LCD 4-bit mode
+	;0x33
+	MOV r0, #0x33
+	MOV r1, #0x0
+	bl lcdSendByte
+
+	;0X32
+	MOV r0, #0x32
+	MOV r1, #0x0
+	bl lcdSendByte
+
+	;Set 2 lines, all columns and rows (0X28)
+	MOV r0, #0x28
+	MOV r1, #0x0
+	bl lcdSendByte
+
+	;Clear display (0X01)
+	MOV r0, #0x01
+	MOV r1, #0x0
+	bl lcdSendByte
+
+	;Display on, cursor blinks (0X0f)
+	MOV r0, #0x0f
+	MOV r1, #0x0
+	bl lcdSendByte
+
+	;Increment cursor after char printed
+	;MOV r0, #06
+	;MOV r1, #0x0
+	;bl lcdSendByte
+
+	;Display on, no blink
+	;MOV r0, #0x0E
+	;MOV r1, #0x0
+	;bl lcdSendByte
+
 
 
 	POP {r4-r12, lr}
