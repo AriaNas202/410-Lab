@@ -182,7 +182,7 @@ PrevTransPoll1:
 	add r0, r0, #0x008		;get effective address
 
 	;Create Data, Rs, Enable bit to send
-	add r1, r2, #0xF0		;Mask the higher nibble
+	AND r1, r2, #0xF0		;Mask the higher nibble
 	;LSL r1, r2, #4			;shift nibble left 4 bits to put in pins 7-4
 	Add r1,r1, #0x2			;set enable bit high cause this is the first send
 	add r1,r1,r3			;add the rs bit
@@ -216,7 +216,6 @@ CurrTransPoll1:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	nop		;nop a little to give it time between rise and fall of enable bit
 	nop
 	nop
 	nop
@@ -256,7 +255,39 @@ CurrTransPoll1:
 	nop
 	nop
 	nop
-
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -294,7 +325,7 @@ PrevTransPoll2:
 
 
 	;Create Data, Rs, Enable bit to send
-	add r1, r2, #0xF0		;Mask the higher nibble
+	AND r1, r2, #0xF0		;Mask the higher nibble
 	;LSL r1, r2, #4			;shift nibble left 4 bits to put in pins 7-4
 	BIC r1,r1, #0x2			;set enable bit low  cause this is the second send
 	add r1,r1,r3			;add the rs bit
@@ -368,7 +399,7 @@ PrevTransPoll3:
 	add r0, r0, #0x008		;get effective address
 
 	;Create Data, Rs, Enable bit to send
-	add r1, r2, #0xF		;Mask the lower nibble
+	AND r1, r2, #0xF		;Mask the lower nibble
 	LSL r1, r1, #4			;shift nibble left 4 bits to put in pins 7-4
 	Add r1,r1, #0x2			;set enable bit high cause this is the first send
 	add r1,r1,r3			;add the rs bit
@@ -402,7 +433,6 @@ CurrTransPoll3:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	nop		;nop a little to give it time between rise and fall of enable bit
 	nop
 	nop
 	nop
@@ -442,7 +472,39 @@ CurrTransPoll3:
 	nop
 	nop
 	nop
-
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -480,7 +542,7 @@ PrevTransPoll4:
 
 
 	;Create Data, Rs, Enable bit to send
-	add r1, r2, #0xF		;Mask the lower nibble
+	AND r1, r2, #0xF		;Mask the lower nibble
 	LSL r1, r1, #4			;shift nibble left 4 bits to put in pins 7-4
 	BIC r1,r1, #0x2			;set enable bit low  cause this is the second send
 	add r1,r1,r3			;add the rs bit
